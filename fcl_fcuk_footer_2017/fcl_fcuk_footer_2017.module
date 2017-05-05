@@ -1,0 +1,314 @@
+<?php
+
+/**
+ * @file
+ * FCUK 2017 Footer
+ */
+
+/**
+ * Constants.
+ */
+
+// The new theme variant page.
+const FCL_FCUK_FOOTER_2017_PAGE_VARIANT_NEW = 'new-theme';
+
+// The new theme variant page.
+const FCL_FCUK_FOOTER_2017_PAGE_VARIANT_OLD = 'old-theme';
+
+// The new theme variant page.
+const FCL_FCUK_FOOTER_2017_PAGE_VARIANT_OLD_FB = 'old-fb-theme';
+
+/**
+ * Includes.
+ */
+module_load_include('inc', 'fcl_fcuk_footer_2017', 'fcl_fcuk_footer_2017.footer_menu');
+
+/**
+ * Implements hook_menu().
+ *
+ * @return array
+ *   An array of menu declarations.
+ */
+function fcl_fcuk_footer_2017_menu() {
+  return [
+    'footer-test/' . FCL_FCUK_FOOTER_2017_PAGE_VARIANT_NEW => [
+      'title' => 'Footer test page - new theme',
+      'description' => 'Test page which displays the footer in the new FCUK theme.',
+      'page callback' => 'fcl_fcuk_footer_2017_test_page',
+      'page arguments' => [1],
+      'theme callback' => 'fcl_fcuk_footer_2017_menu_theme_callback',
+      'theme arguments' => [1],
+      'type' => MENU_CALLBACK,
+      'access arguments' => ['administer nodes'],
+    ],
+    'footer-test/' . FCL_FCUK_FOOTER_2017_PAGE_VARIANT_OLD => [
+      'title' => 'Footer test page - old theme',
+      'description' => 'Test page which displays the footer in the old FCUK theme.',
+      'page callback' => 'fcl_fcuk_footer_2017_test_page',
+      'page arguments' => [1],
+      'theme callback' => 'fcl_fcuk_footer_2017_menu_theme_callback',
+      'theme arguments' => [1],
+      'type' => MENU_CALLBACK,
+      'access arguments' => ['administer nodes'],
+    ],
+    'footer-test/' . FCL_FCUK_FOOTER_2017_PAGE_VARIANT_OLD_FB => [
+      'title' => 'Footer test page - old First and Business theme',
+      'description' => 'Test page which displays the footer in the old F&amp;B theme.',
+      'page callback' => 'fcl_fcuk_footer_2017_test_page',
+      'page arguments' => [1],
+      'theme callback' => 'fcl_fcuk_footer_2017_menu_theme_callback',
+      'theme arguments' => [1],
+      'type' => MENU_CALLBACK,
+      'access arguments' => ['administer nodes'],
+    ],
+  ];
+}
+
+/**
+ * Function used by the menu router to set the theme.
+ *
+ * @param string $page_variant
+ *   The page being requested; one of "new-theme", "old-theme" or
+ *   "old-fb-theme".
+ *
+ * @return string
+ *   The theme to be used.
+ */
+function fcl_fcuk_footer_2017_menu_theme_callback($page_variant) {
+  $theme = NULL;
+
+  switch ($page_variant) {
+    case FCL_FCUK_FOOTER_2017_PAGE_VARIANT_NEW:
+      $theme = 'fcuk_clean';
+      break;
+
+    case FCL_FCUK_FOOTER_2017_PAGE_VARIANT_OLD:
+      $theme = 'fcuk';
+      break;
+
+    case FCL_FCUK_FOOTER_2017_PAGE_VARIANT_OLD_FB:
+      $theme = 'fcukfb';
+      break;
+  }
+
+  return $theme;
+}
+
+/**
+ * Implements hook_theme().
+ *
+ * @param $existing
+ * @param $type
+ * @param $theme
+ * @param $path
+ *
+ * @return array
+ *   An array of theme declarations.
+ */
+function fcl_fcuk_footer_2017_theme($existing, $type, $theme, $path) {
+  return [
+    'fcl_fcuk_footer_2017' => [
+      'variables' => [
+        'variant' => NULL,
+      ],
+      'render element' => 'element',
+      'path' => drupal_get_path('module', 'fcl_fcuk_footer_2017') . '/templates',
+      'template' => 'fcl-fcuk-footer-2017',
+    ],
+  ];
+}
+
+/**
+ * Preprocess function for the fcl_fcuk_footer_2017 theme function.
+ *
+ * @param array $variables
+ *   An array of themeing variaboos.
+ */
+function fcl_fcuk_footer_2017_preprocess_fcl_fcuk_footer_2017(&$variables) {
+  // Attach CSS and JS for the footer.
+  // @todo: add CSS and JS as attached elements.
+  $module_path = drupal_get_path('module', 'fcl_fcuk_footer_2017');
+  drupal_add_css($module_path . '/stylesheets/fcl-fcuk-footer-2017.css');
+  drupal_add_js($module_path . '/js/fcl-fcuk-footer-2017.js');
+
+  $variables['variant'] = fcl_fcuk_footer_2017_variant_get();
+
+  // Get the menus. Create a desktop and mobile version of each so we don't
+  // have to do $menu_something['#printed'] = FALSE in the template.
+  $variables['menu_quick_links_mobile'] = $variables['menu_quick_links_desktop'] = menu_tree_output(menu_tree_all_data(FCL_FCUK_FOOTER_2017_MENU_QUICK_LINKS));
+  $variables['menu_flights_mobile'] = $variables['menu_flights_desktop'] = menu_tree_output(menu_tree_all_data(FCL_FCUK_FOOTER_2017_MENU_FLIGHTS));
+  $variables['menu_holidays_mobile'] = $variables['menu_holidays_desktop'] = menu_tree_output(menu_tree_all_data(FCL_FCUK_FOOTER_2017_MENU_HOLIDAYS));
+  $variables['menu_about_mobile'] = $variables['menu_about_desktop'] = menu_tree_output(menu_tree_all_data(FCL_FCUK_FOOTER_2017_MENU_ABOUT));
+  $variables['menu_contact_mobile'] = $variables['menu_contact_desktop'] = menu_tree_output(menu_tree_all_data(FCL_FCUK_FOOTER_2017_MENU_CONTACT));
+
+  // Get the newsletter form.
+  $variables['newsletter_form'] = fcl_static_forms_get_form_render_array('newsletter_footer_20170403');
+
+  // Add the path to the module as a url().
+  $variables['module_url'] = url(drupal_get_path('module', 'fcl_fcuk_footer_2017'));
+
+  // Get the "Contact an expert" block.
+  $contact_an_expert_parameters = [
+    'text=' . t('Contact an Expert') . ' <span class="consultant-image"></span>',
+  ];
+
+  $variables['contact_an_expert'] = fcl_uk_utilities_create_cta_button($contact_an_expert_parameters);
+}
+
+/**
+ * Gets the variant for the page.
+ *
+ * @return string
+ *   The chosen variant.
+ */
+function fcl_fcuk_footer_2017_variant_get() {
+  $variant = variable_get('fcl_fcuk_footer_2017_variant', 'a');
+
+  // Implement a hook_fcl_fcuk_footer_2017_variant_alter.
+  drupal_alter('fcl_fcuk_footer_2017_variant', $variant);
+
+  return $variant;
+}
+
+/**
+ * Implements hook_fcl_fcuk_footer_2017_variant_alter().
+ *
+ * @todo: Implement selection logic?
+ *
+ * @param string $variant
+ *   The variant to show.
+ */
+function fcl_fcuk_footer_2017_fcl_fcuk_footer_2017_variant_alter(&$variant) {
+  // If the URL contains footervariant=x, and x is a valid variant, change the
+  // variant to that value.
+  if (isset($_GET['footervariant'])) {
+    $variant_override = filter_xss($_GET['footervariant']);
+
+    if (fcl_fcuk_footer_2017_variant_is_allowed($variant_override)) {
+      $variant = $variant_override;
+    }
+  }
+}
+
+/**
+ * Returns a list of allowed footer variants.
+ *
+ * @return array
+ *   An array of allowable variants.
+ *
+ * @todo: Make this configurable.
+ */
+function fcl_fcuk_footer_2017_allowed_variants() {
+  $variants = [
+    'a',
+    'b',
+  ];
+
+  // Implement a hook_fcl_fcuk_footer_2017_allowed_variants_alter.
+  drupal_alter('fcl_fcuk_footer_2017_allowed_variants', $variants);
+
+  return $variants;
+}
+
+/**
+ * Checks whether a variant is allowed.
+ *
+ * This function checks whether $variant exists in the list of allowed
+ * variants returned by fcl_fcuk_footer_2017_allowed_variants().
+ *
+ * @param string $variant
+ *   The variant being checked.
+ *
+ * @return bool
+ *   TRUE if the variant is allowed, or FALSE if not.
+ */
+function fcl_fcuk_footer_2017_variant_is_allowed($variant) {
+  return in_array($variant, fcl_fcuk_footer_2017_allowed_variants());
+}
+
+/**
+ * Test page callback to display the footer in a particular theme.
+ *
+ * @param string $page_variant
+ *   The page being requested; one of "new-theme", "old-theme" or
+ *   "old-fb-theme".
+ *
+ * @return array
+ *   A Drupal render array.
+ */
+function fcl_fcuk_footer_2017_test_page($page_variant) {
+  // Set the theme based on the page variant.
+  $theme_type = '';
+  switch ($page_variant) {
+    case FCL_FCUK_FOOTER_2017_PAGE_VARIANT_NEW:
+      $theme_type = t('new theme');
+      break;
+
+    case FCL_FCUK_FOOTER_2017_PAGE_VARIANT_OLD:
+      $theme_type = t('old theme');
+      break;
+
+    case FCL_FCUK_FOOTER_2017_PAGE_VARIANT_OLD_FB:
+      $theme_type = t('old First & Business theme');
+      break;
+
+    default:
+      drupal_not_found();
+      drupal_exit();
+      break;
+  }
+
+  // Create a simple render array so the page has some content.
+  $title = t('Flight Centre UK footer test page - @theme_type', ['@theme_type' => $theme_type]);
+  drupal_set_title($title);
+
+  // Build the links to switch variants.
+  $variant_links = [];
+
+  foreach (fcl_fcuk_footer_2017_allowed_variants() as $allowed_variant) {
+    // Don't show a link to the current variant.
+    if ($allowed_variant != fcl_fcuk_footer_2017_variant_get()) {
+      $variant_links[] = l(t('variant @variant', ['@variant' => $allowed_variant]), $_GET['q'], [
+        'query' => [
+          'footervariant' => $allowed_variant,
+        ],
+      ]);
+    }
+  }
+
+  // Create the links to allow us to switch between variants.
+  $replacements = [
+    '@new_theme_test_page_url' => url('footer-test/' . FCL_FCUK_FOOTER_2017_PAGE_VARIANT_NEW),
+    '@old_theme_test_page_url' => url('footer-test/' . FCL_FCUK_FOOTER_2017_PAGE_VARIANT_OLD),
+    '@old_fb_theme_test_page_url' => url('footer-test/' . FCL_FCUK_FOOTER_2017_PAGE_VARIANT_OLD_FB),
+    '@variant' => fcl_fcuk_footer_2017_variant_get(),
+    '!other_variant_links' => implode(', ', $variant_links),
+  ];
+
+  return [
+    'title' => [
+      '#type' => 'html_tag',
+      '#tag' => 'h1',
+      '#value' => $title,
+      '#attributes' => [
+        'class' => ['fcl-fcuk-footer-2017-test-page-element'],
+      ],
+    ],
+    'content_1' => [
+      '#type' => 'html_tag',
+      '#tag' => 'p',
+      '#value' => t('Test pages: <a href="@new_theme_test_page_url">new theme</a> | <a href="@old_theme_test_page_url">old theme</a> | <a href="@old_fb_theme_test_page_url">old F&B theme</a>', $replacements),
+      '#attributes' => [
+        'class' => ['fcl-fcuk-footer-2017-test-page-element'],
+      ],
+    ],
+    'content_2' => [
+      '#type' => 'html_tag',
+      '#tag' => 'p',
+      '#value' => t('This is a test page visible to site administrators to preview the new footer. This page is showing footer variant <strong>@variant</strong> - switch to !other_variant_links?', $replacements),
+      '#attributes' => [
+        'class' => ['fcl-fcuk-footer-2017-test-page-element'],
+      ],
+    ],
+  ];
+}

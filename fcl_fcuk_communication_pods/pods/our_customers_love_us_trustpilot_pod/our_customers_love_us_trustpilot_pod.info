@@ -1,0 +1,16 @@
+; Info file for this pod.
+pod_name = "Our customers love us" Trustpilot pod
+
+; Only show on the holidays search results page.
+paths[] = holidays/search
+paths[] = holidays/search/*
+
+; Specify a preprocess function.
+;preprocess_file = our_customers_love_us_trustpilot_pod.inc
+;preprocess_functions[] = communication_pod_our_customers_love_us_trustpilot_pod_preprocess
+
+; Specify an external JS file.
+pod_external_js[] = //widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js
+
+; Specify an external CSS file.
+; pod_external_css[] = http://www.example.com/example.css

@@ -1,0 +1,11 @@
+name = Flight Centre UK Communication Pods
+description = Inserts Communication Pods into holidays search results.
+package = fcuk
+core = 7.x
+version = 7.x-1.0-20170503
+
+; The Entity Controller.
+files[] = fcl_fcuk_communication_pods.controller.inc
+
+; We need FCL UK Utilities for its string handling functions.
+dependencies[] = fcl_uk_utilities

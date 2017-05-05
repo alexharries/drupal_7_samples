@@ -1,0 +1,10 @@
+/**
+ * @file
+ * Common styles for communication pods.
+ */
+
+.communication-pod {
+  clear: both;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}

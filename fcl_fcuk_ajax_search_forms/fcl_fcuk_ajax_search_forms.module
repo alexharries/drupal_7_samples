@@ -1,0 +1,109 @@
+<?php
+
+/**
+ * @file
+ * Drupal API functions for this module live in here.
+ *
+ * @see fcl_fcuk_ajax_search_forms.api.inc for the module's API functions.
+ */
+
+/**
+ * Include files.
+ */
+module_load_include('inc', 'fcl_fcuk_ajax_search_forms', 'fcl_fcuk_ajax_search_forms.api');
+
+/**
+ * Constant definitions.
+ */
+
+// The Ajax callback path.
+const FCL_FCUK_AJAX_SEARCH_FORMS_CALLBACK_PATH = 'search-form-options';
+
+// Whether caching is enabled or disabled by default.
+const FCL_FCUK_AJAX_SEARCH_FORMS_CACHE_ENABLED_DEFAULT = FALSE;
+
+// Default cache lifetime, in seconds - 15 minutes.
+const FCL_FCUK_AJAX_SEARCH_FORMS_CACHE_LIFETIME_DEFAULT = 60 * 15;
+
+/**
+ * Implements hook_menu().
+ */
+function fcl_fcuk_ajax_search_forms_menu() {
+  return [
+    FCL_AJAX_CACHE_PATH . '/' . FCL_FCUK_AJAX_SEARCH_FORMS_CALLBACK_PATH . '/%/%' => [
+      'access callback' => TRUE,
+      'type' => MENU_CALLBACK,
+      'page callback' => 'fcl_fcuk_ajax_search_forms_ajax_options_callback',
+      'page arguments' => [3, 4],
+    ],
+    FCL_AJAX_NOCACHE_PATH . '/' . FCL_FCUK_AJAX_SEARCH_FORMS_CALLBACK_PATH . '/%/%' => [
+      'access callback' => TRUE,
+      'type' => MENU_CALLBACK,
+      'page callback' => 'fcl_fcuk_ajax_search_forms_ajax_options_callback',
+      'page arguments' => [3, 4],
+    ],
+  ];
+}
+
+/**
+ * Implements
+ * hook_fcl_fcuk_ajax_search_forms_dropdown_options_process_destinations_alter().
+ *
+ * This function converts the raw holiday destinations in Mercury into their
+ * aliases.
+ *
+ * @param array $dropdown_options
+ *   The list of dropdown options being built.
+ *
+ * @param array $field_configuration
+ *   The field configuration array, from
+ *   fcl_fcuk_ajax_search_forms_get_field_configuration().
+ */
+function fcl_fcuk_ajax_search_forms_fcl_fcuk_ajax_search_forms_dropdown_options_process_destinations_alter(&$dropdown_options, $field_configuration) {
+  $dropdown_options = fcl_fcuk_ajax_search_forms_convert_solr_field_options_to_aliases($field_configuration['solr_field'], $dropdown_options);
+}
+
+/**
+ * Implements
+ * hook_fcl_fcuk_ajax_search_forms_dropdown_options_process_types_alter().
+ *
+ * @param array $dropdown_options
+ *   The list of dropdown options being built.
+ *
+ * @param array $field_configuration
+ *   The field configuration array, from
+ *   fcl_fcuk_ajax_search_forms_get_field_configuration().
+ */
+function fcl_fcuk_ajax_search_forms_fcl_fcuk_ajax_search_forms_dropdown_options_process_types_alter(&$dropdown_options, $field_configuration) {
+  $dropdown_options = fcl_fcuk_ajax_search_forms_convert_solr_field_options_to_aliases($field_configuration['solr_field'], $dropdown_options);
+}
+
+/**
+ * Implements
+ * hook_fcl_fcuk_ajax_search_forms_dropdown_options_process_ratings_alter().
+ *
+ * @param array $dropdown_options
+ *   The list of dropdown options being built.
+ *
+ * @param array $field_configuration
+ *   The field configuration array, from
+ *   fcl_fcuk_ajax_search_forms_get_field_configuration().
+ */
+function fcl_fcuk_ajax_search_forms_fcl_fcuk_ajax_search_forms_dropdown_options_process_ratings_alter(&$dropdown_options, $field_configuration) {
+  $dropdown_options = fcl_fcuk_ajax_search_forms_convert_solr_field_options_to_aliases($field_configuration['solr_field'], $dropdown_options);
+}
+
+/**
+ * Implements hook_fcl_uk_utilities_url_to_string_alter().
+ *
+ * This is a bit of an example function, but it removes "null" values which
+ * have come from Javascript Ajax requests.
+ *
+ * @param string $string
+ *   The string to be altered.
+ */
+function fcl_fcuk_ajax_search_forms_fcl_uk_utilities_url_to_string_alter(&$string) {
+  if (strtolower($string) == 'null') {
+    $string = '*';
+  }
+}

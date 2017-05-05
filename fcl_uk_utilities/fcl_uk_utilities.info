@@ -1,0 +1,5 @@
+name = FCL UK Utilities
+description = General helper functions for reuse.
+package = FCL UK
+core = 7.x
+scripts[] = fcl_uk_utilities.js

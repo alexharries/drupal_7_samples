@@ -1,0 +1,675 @@
+<?php
+/**
+ * @file
+ * Code for the Holiday Search Tiles Paragraph Ribbons feature.
+ */
+
+// Note that when we convert a Paragraphs Feature into an FCLUK Pages
+// component, you have to move the hook_paragraphs_info() function
+// from the features.inc file into the
+// plugins/paragraph_types/<your module name>.inc file.
+include_once 'fcl_ribbons_holiday_search_tiles.features.inc';
+include_once 'fcl_ribbons_holiday_search_tiles.functions.inc';
+
+/**
+ * Custom code lives below this line.
+ */
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function fcl_ribbons_holiday_search_tiles_ctools_plugin_directory($owner, $plugin_type) {
+  if (($owner == 'fcluk_pages') && ($plugin_type == 'paragraph_types')) {
+    // return 'plugins/' . $plugin_type;
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function fcl_ribbons_holiday_search_tiles_theme() {
+  $theme = [];
+
+  $theme['paragraphs_item__holiday_search_tiles'] = [
+    'render element' => 'elements',
+    'template' => 'paragraphs-item--holiday-search-tiles',
+    'path' => drupal_get_path('module', 'fcl_ribbons_holiday_search_tiles') . '/templates',
+  ];
+
+  $theme['paragraphs_item__holiday_search_tile'] = [
+    'render element' => 'elements',
+    'template' => 'paragraphs-item--holiday-search-tile',
+    'path' => drupal_get_path('module', 'fcl_ribbons_holiday_search_tiles') . '/templates',
+    'preprocess' => ['fcl_ribbons_holiday_search_tiles_preprocess_paragraphs_item__holiday_search_tile'],
+  ];
+
+  return $theme;
+}
+
+/**
+ * Implements hook_entity_view_alter().
+ */
+function fcl_ribbons_holiday_search_tiles_entity_view_alter(&$build, $type) {
+  if (($type == 'paragraphs_item') && ($build['#bundle'] == 'holiday_search_tiles')) {
+    // Make sure $build['#attached'], ...['css'] and ...['js'] are arrays.
+    if (empty($build['#attached'])) {
+      $build['#attached'] = [];
+    }
+
+    $build['#attached'] += [
+      'css' => [],
+      'js' => [],
+    ];
+
+    // Add the module's CSS on pages where we're displaying a paragraph.
+    $build['#attached']['css'][] = drupal_get_path('module', 'fcl_ribbons_holiday_search_tiles') . '/css/fcl-ribbons-holiday-search-tiles.css';
+    $build['#attached']['js'][] = drupal_get_path('module', 'fcl_ribbons_holiday_search_tiles') . '/js/fcl-ribbons-holiday-search-tiles.js';
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK().
+ *
+ * @param array $variables
+ *   The variables array for the entity.
+ */
+function fcl_ribbons_holiday_search_tiles_preprocess_entity(&$variables) {
+  if ($variables['entity_type'] == 'paragraphs_item') {
+    // If the paragraph type is holiday_search_tiles, preprocess it.
+    $paragraph_type = $variables['paragraphs_item']->bundle;
+
+    if ($paragraph_type == 'holiday_search_tiles') {
+      fcl_ribbons_holiday_search_tiles_preprocess_holiday_search_tiles_paragraph_item($variables);
+    }
+  }
+}
+
+/**
+ * Preprocess holiday search tiles.
+ *
+ * This function prepares the variables for a holiday search tile. It requires
+ * that we have an '#original_entity' array key in $variables.
+ *
+ * @param array $variables
+ *   The theme variables array.
+ */
+function fcl_ribbons_holiday_search_tiles_preprocess_paragraphs_item__holiday_search_tile(&$variables) {
+  if (!empty($variables['elements'])
+    && !empty($variables['elements']['#original_entity'])
+  ) {
+    // Copy the original entity into a convenience variaboo.
+    $original_entity_viewed = $variables['elements']['#original_entity'];
+
+    // Get the original entity, too.
+    $original_entity = $original_entity_viewed['#entity'];
+
+    // Use Andrea's helper class to manipulate the holiday's data.
+    $mercury_holiday = new MercuryProduct('mercury_holiday', $original_entity);
+
+    // Initialise all the variables.
+    $variables += [
+      'holiday_url' => '',
+      'image' => '',
+      'image_alt' => '',
+      'image_title' => '',
+      'place_name' => '',
+      'holiday_name' => '',
+      'product_tag' => '',
+      'product_tag_class' => '',
+      'days_from' => '',
+      'price' => '',
+    ];
+
+    // URL (i.e. path run through url()) to the holiday page. Note that we
+    // need to get the product's URL from its entity information. Convoluted
+    // much? Mais oui.
+    $variables['holiday_url'] = url($mercury_holiday->getProductLink());
+
+    // The plain text (escaped) place name, e.g. "Australia".
+    $variables['place_name'] = $mercury_holiday->getDestination();
+
+    // The plain text (escaped) holiday name, e.g. "Great Ocean Road".
+    $variables['holiday_name'] = $mercury_holiday->getProperty('name');
+
+    // Get the image URL and title, if present. We don't use getImageUrl()
+    // here because we effectively have top replicate its functionality to
+    // get the image's name anyhoo. Oh well; @todo :)
+    if (!empty($original_entity->images)) {
+      $image = reset($original_entity->images);
+      if (!empty($image->image)) {
+        $image_path = imagecache_external_generate_path($image->image);
+        $variables['image'] = image_style_url('holiday_search_tile', $image_path);
+        $variables['image_title'] = !empty($image->name) ? $image->name : t('Image for @holiday_name', [
+          '@holiday_name' => $variables['holiday_name'],
+        ]);
+
+        // Copy the image title to its alt - this is definitely cheating; we
+        // _should_ provide a more abstract description in the alt field.
+        $variables['image_alt'] = $variables['image_title'];
+      }
+    }
+
+    // The plain text (escaped) holiday tag text, e.g. "Tailor-made journey".
+    // This gives us an array of zero or more travel type objects.
+    $travel_types = $mercury_holiday->getProperty('travel_types');
+
+    if (!empty($travel_types)) {
+      $first_travel_type = reset($travel_types);
+
+      if (!empty($first_travel_type) && !empty($first_travel_type->name)) {
+        $variables['product_tag'] = $first_travel_type->name;
+        $variables['product_tag_class'] = strtolower(drupal_clean_css_identifier($variables['product_tag']));
+      }
+    }
+
+    // The plain text (escaped) days from text, e.g. "11 days from".
+    $variables['days_from'] = t('@duration days from', [
+      '@duration' => $mercury_holiday->getProperty('duration'),
+    ]);
+
+    // The price numbers, e.g. 1023.55.
+    if ($price = $mercury_holiday->getPriceFrom()) {
+      $variables['price'] = t('<span class="price-prefix">!price_prefix</span> <span class="price-numbers">@price</span> <span class="price-suffix">!price_suffix</span>', [
+
+        // The price prefix - usually a currency symbol, escaped. E.g. &pound;
+        '!price_prefix' => '&pound;',
+
+        // The price - numbers only.
+        '@price' => $price,
+
+        // The price suffix - usually "pp" (per-person).
+        '!price_suffix' => t('pp'),
+      ]);
+    }
+  }
+  else {
+    // No entity provided; add an error flag to help debuggers.
+    $variables['holiday_search_tile_not_found'] = TRUE;
+  }
+}
+
+/**
+ * Generate a flights table from the holiday_search_tiles's parameters.
+ *
+ * The variables are: field_productlist_flts_expts, field_holiday_tiles_types
+ * and field_productlist_flts_airlns.
+ *
+ * We need to turn that into a Solr query, and then build a table of results
+ * and put that into a variable called holiday_search_tiles.
+ *
+ * Once generated, we cache the results for better performance.
+ *
+ * @param array $variables
+ *   The variables array for the entity.
+ */
+function fcl_ribbons_holiday_search_tiles_preprocess_holiday_search_tiles_paragraph_item(&$variables) {
+  $cache_enabled = variable_get(FCL_RIBBONS_HOLIDAY_SEARCH_TILES_CACHE_ENABLED_VARIABLE, FCL_RIBBONS_HOLIDAY_SEARCH_TILES_CACHE_ENABLED_DEFAULT);
+  $cache_hit = FALSE;
+
+  // Do we have a list of destinations? Note that we use the value, not safe
+  // value here, because otherwise we would have to de-encode ampersands, for
+  // example in "Wildlife & Nature".
+  $holiday_types_aliased = $holiday_types = [];
+
+  if (!empty($variables['field_holiday_tiles_types'])
+    && !empty($variables['field_holiday_tiles_types'][0])
+    && !empty($variables['field_holiday_tiles_types'][0]['value'])
+  ) {
+    // Yes. The string will be comma-separated plain text destinations, so we
+    // need to split it into an array of destinations, lower-case them, change
+    // spaces to underscores, and escape anything else.
+    $holiday_types = fcl_uk_utilities_text_field_to_array($variables['field_holiday_tiles_types'][0]['value']);
+
+    // Convert any aliases (alii?) into their Solr original names.
+    $holiday_types_aliased = fcl_uk_utilities_mercury_holiday_type_solr_to_aliases($holiday_types);
+  }
+
+  // What's the limit, Mister Wolf?
+  $max_results = $variables['field_holiday_tiles_results'][0]['value'];
+
+  // Are we using the site default max results?
+  if ($max_results == FCL_RIBBONS_HOLIDAY_SEARCH_TILES_SEARCH_RESULTS_DEFAULT) {
+    // Yes.
+    $max_results = variable_get('fcl_ribbons_holiday_search_tiles_search_results_limit', FCL_RIBBONS_HOLIDAY_SEARCH_TILES_SEARCH_RESULTS_DEFAULT_LIMIT);
+  }
+
+  // Generate a cache ID, in the form
+  // fclholidaysearchtiles::count:6::types:holiday-1:holiday-2:etc.
+  $cache_id = 'fclholidaysearchtiles::count:' . $max_results . '::types:' . strtolower(implode(':', $holiday_types));
+
+  // Check if the data has already been built and cached.
+  if ($cache_enabled && ($cache = cache_get($cache_id))) {
+    $variables['holiday_search_tiles'] = $cache->data;
+    $cache_hit = TRUE;
+  }
+  else {
+    // Not found in the cache; generate it now. Create a new solr query.
+    $solr_server_id = variable_get('mercury_apache_solr_id', FCL_UK_UTILITIES_MERCURY_SERVER_DEFAULT);
+
+    // Create a query object.
+    $solr = apachesolr_get_solr($solr_server_id);
+    $query = apachesolr_drupal_query('apachesolr', [], '', '', $solr);
+
+    // We only want mercury holidays.
+    $query->addFilter('entity_type', 'mercury_holiday');
+
+    // Make sure the holiday is published, and specifically that it's
+    // published for FCUK, too.
+    $query->addFilter('bs_mercury_holiday_publish_status', 1);
+    $query->addFilter('bs_mercury_holiday_fcuk_publish_status', 1);
+
+    // Sort by price ascending.
+    $query->addParam('sort', 'is_mercury_holiday_fcuk_price_from asc');
+
+    // Add holiday type(s), if we have any.
+    if (count($holiday_types) > 0) {
+      $query->addFilter('sm_mercury_holiday_type', fcl_uk_utilities_array_to_solr_query($holiday_types));
+    }
+
+    // Avoid returning a squillion results. If a results limit has been
+    // specified, add a row limit here.
+    if ($max_results > 0) {
+      $query->addParam('rows', $max_results);
+    }
+
+    // Fetch results.
+    $result = $query->search();
+    $result_docs = $result->response->docs;
+    $holiday_search_tiles = [];
+
+    // Only add the product's entity to the list if it loads and renders
+    // successfully.
+    // @TODO: consider adding some debug/diagnostic code here if the entity
+    // can't be loaded for any reason.
+    foreach ($result_docs as $result_doc) {
+      if (!empty($result_doc->entity_id)) {
+        if ($holiday_entity = entity_load_single('mercury_holiday', $result_doc->is_mercury_holiday_id)) {
+          if ($holiday_entity_view = entity_view('mercury_holiday', [$holiday_entity])) {
+            // Mercury product entities are returned in the form:
+            //
+            // array(
+            //   'mercury_holiday' => array(
+            //     <entity ID> => array(
+            //       <render array>...
+            //     ),
+            //   ),
+            // );
+            //
+            // ... so we need to trim the two outer array layers off.
+            $holiday_entity_view = reset($holiday_entity_view);
+            $holiday_entity_view = reset($holiday_entity_view);
+
+            // Create a render array which will call the
+            // paragraphs_item__holiday_search_tile theme function.
+            $holiday_search_tiles[] = [
+              '#theme' => 'paragraphs_item__holiday_search_tile',
+              '#original_entity' => $holiday_entity_view,
+            ];
+          }
+        }
+      }
+    }
+
+    // Generate the list.
+    $variables['holiday_search_tiles'] = $holiday_search_tiles;
+
+    // Reset the Apache Solr static response cache.
+    drupal_static_reset('apachesolr_static_response_cache');
+
+    if ($cache_enabled) {
+      // Set the cache, with expiry in the near future.
+      $expire_timestamp = REQUEST_TIME +
+        variable_get('fcl_ribbons_holiday_search_tiles_cache_expiry', FCL_RIBBONS_HOLIDAY_SEARCH_TILES_CACHE_EXPIRY_DEFAULT);
+
+      cache_set($cache_id, $variables['holiday_search_tiles'], 'cache', $expire_timestamp);
+    }
+  }
+
+  // Set up the more info link, if present. Start by setting empty values.
+  $variables += [
+    'more_results_link_text' => NULL,
+    'more_results_link_url' => NULL,
+  ];
+
+  // Is the "Show more results link" checkbox checked?
+  if (!empty($variables['field_holiday_tiles_more_results'])
+    && $variables['field_holiday_tiles_more_results'][0]['value'] == '1'
+  ) {
+    // Yes - set up the URL and text for the link. Did the editor specify the
+    // link's title text?
+    if (!empty($variables['field_holiday_tiles_more_text'])
+      && !empty($variables['field_holiday_tiles_more_text'][0]['safe_value'])
+    ) {
+      $variables['more_results_link_text'] = $variables['field_holiday_tiles_more_text'][0]['safe_value'];
+    }
+    else {
+      // No text specified; use the default text instead.
+      $variables['more_results_link_text'] = t(FCL_RIBBONS_HOLIDAY_SEARCH_TILES_SHOW_MORE_RESULTS_DEFAULT_TEXT);
+    }
+
+    // Do we have a URL to send users to?
+    $variables['more_results_link_query'] = [];
+
+    if (!empty($variables['field_holiday_tiles_more_url'])
+      && !empty($variables['field_holiday_tiles_more_url'][0]['value'])
+    ) {
+      $variables['more_results_link_path'] = $variables['field_holiday_tiles_more_url'][0]['value'];
+    }
+    else {
+      // No URL specified, so we create a link to the holidays search results
+      // page.
+      $variables['more_results_link_path'] = 'holidays/search';
+      $variables['more_results_link_query'] = [
+        'type' => implode(',', $holiday_types_aliased),
+      ];
+    }
+
+    // Lastly, run the link through url().
+    $variables['more_results_link_url'] = url($variables['more_results_link_path'], [
+      'query' => $variables['more_results_link_query'],
+    ]);
+  }
+
+  // Set a cache hit/miss variable.
+  $variables['cache_hit'] = $cache_hit;
+
+  // Hide the other fields which we don't want to render.
+  hide($variables['content']);
+  hide($variables['field_holiday_tiles_types']);
+  hide($variables['field_holiday_tiles_results']);
+  hide($variables['field_holiday_tiles_more_results']);
+  hide($variables['field_holiday_tiles_more_text']);
+}
+
+/**
+ * Implements hook_module_implements_alter.
+ *
+ * Move the fcl_ribbons_holiday_search_tiles module to run last, mainly for
+ * form-altering goodness.
+ *
+ * @param $implementations
+ * @param $hook
+ */
+function fcl_ribbons_holiday_search_tiles_module_implements_alter(&$implementations, $hook) {
+  if (($hook == 'form_alter') || ($hook == 'field_widget_form_alter')) {
+    // Move all hooks for this module to the end of the list.
+    // module_implements() iterates through $implementations with a foreach
+    // loop which PHP iterates in the order that the items were added, so to
+    // move an item to the end of the array, we remove it and then add it.
+    if (array_key_exists('fcl_ribbons_holiday_search_tiles', $implementations)) {
+      $group = $implementations['fcl_ribbons_holiday_search_tiles'];
+      unset($implementations['fcl_ribbons_holiday_search_tiles']);
+      $implementations['fcl_ribbons_holiday_search_tiles'] = $group;
+    }
+  }
+}
+
+/**
+ * Implements hook_field_widget_form_alter().
+ *
+ * @param $element
+ * @param $form_state
+ * @param $context
+ */
+function fcl_ribbons_holiday_search_tiles_field_widget_form_alter(&$element, &$form_state, $context) {
+  // Is this the field_holiday_tiles_types field on the node edit form?
+  // Be careful to only fire this alteration when we're on a node edit form.
+  if (array_key_exists('#entity_type', $context['form'])
+    && ($context['form']['#entity_type'] == 'node')
+    && array_key_exists('#field_name', $element)
+    && ($element['#field_name'] == 'field_holiday_tiles_types')
+  ) {
+    // Yes. Convert this field to a set of checkboxes which allow the
+    // editor to select holidays of the types listed on the search form.
+    $element['value']['#type'] = 'checkboxes';
+
+    // Convert the default value into an array of defaults. This code is broken
+    // down into baby-steps for readability (i.e. so I can follow it when I
+    // inevitably come back to make changes to it in two weeks' time and I
+    // can't remember why I wrote it this way :).
+    $holiday_types_solr = fcl_uk_utilities_text_field_to_array($element['value']['#default_value']);
+    $element['value']['#default_value'] = $holiday_types_solr;
+
+    // Remove the #maxlength attribute.
+    unset($element['value']['#maxlength']);
+
+    // Unset the '#required' flag; otherwise, the form's validation function
+    // will throw an error because it tries to check for an empty string.
+    $element['value']['#required'] = FALSE;
+
+    $element['value']['#description'] .= ' <em>' . t('You can choose to restrict results to one or more holiday types. If no checkboxes are checked, all types of holidays will be shown.') . '</em>';
+
+    // Get a list of holiday types.
+    $element['value']['#options'] = (array) fcl_uk_utilities_get_mercury_holiday_types();
+
+    // Merge in any holiday type options which have been previously specified
+    // but which no longer appear in the list of available options.
+
+    // This allows us to keep references to holiday types which were previously
+    // available because the Solr index contains holidays with those
+    // categories, but which are now no longer in the index.
+    foreach ($element['value']['#default_value'] as $selected_option) {
+      if (!empty($selected_option)
+        && !array_key_exists($selected_option, $element['value']['#options'])
+      ) {
+        $element['value']['#options'][$selected_option] = $selected_option;
+      }
+    }
+
+    // Add a validation function which converts the checkboxes back into a
+    // string.
+    if (!array_key_exists('#element_validate', $element['value'])) {
+      $element['value']['#element_validate'] = [];
+    }
+
+    $element['value']['#element_validate'][] = 'fcl_ribbons_holiday_search_tiles_field_holiday_tiles_types_element_validate';
+  }
+}
+
+/**
+ * Field validation callback: convert the field_holiday_tiles_types field's
+ * array values into a string.
+ *
+ * The difficulty here is that the value of the field is stored in a nested
+ * location within the $form_state['values'] array; in fact, there could
+ * theoretically be more than one instance of this value, since I could add
+ * two, three, ... n instances of a paragraph field with a holidays paragraph
+ * listing in it.
+ *
+ * So, for each instance where this validation function is called, we need to
+ * get the location of the field from the $element['#field_parents'] array,
+ * which contains data such as:
+ *
+ *  $element['#field_parents'] = array(
+ *    0 => 'field_parapg_paragraphs',   // i.e. the field which contains
+ *                                      // Paragraphs elements.
+ *
+ *    1 => 'und',                       // The language variant for this field;
+ *                                      // we can get this from
+ *                                      // $element['#language'] if needed.
+ *
+ *    2 => 9,                           // i.e. The 9th child element.
+ *  );
+ *
+ * Now, we know that the value we want to change is located at
+ * $form_state['values'][$element['#field_parents'][0]][$element['#field_parents'][1]][$element['#field_parents'][2]],
+ * but how to we programmatically get down to that value, and alter it, in a
+ * way that will persist when the function exits and passes $form_state back by
+ * reference?
+ *
+ * The solution we're going to use here is to create a recursive function into
+ * which we'll pass the $form_state array, or a child of that array, along with
+ * part or all of the #field_parents array, and the new value for the element.
+ *
+ * So, let's give this a go...
+ *
+ * @param array $element
+ * @param array $form_state
+ * @param array $form
+ */
+function fcl_ribbons_holiday_search_tiles_field_holiday_tiles_types_element_validate($element, &$form_state, $form) {
+  // Call our recursive function of awesomeness, which will fix up this
+  // element's value.
+  $form_state['values'] = _fcl_ribbons_holiday_search_tiles_field_holiday_tiles_types_element_validate($form_state['values'], $element['#field_parents'], $element, '_fcl_ribbons_holiday_search_tiles_field_holiday_tiles_types_element_validate_convert_to_string');
+
+  // Reset our FAPI field back to its textfield settings.
+  $element['value']['#type'] = 'textfield';
+
+  // @todo: Can maxlength can go up to 1024?
+  $element['value']['#maxlength'] = 1024;
+  $element['value']['#default_value'] = '';
+  unset($element['value']['#options']);
+}
+
+/**
+ * Locates and changes a deeply-nested $form_state['values'] array element.
+ *
+ * This is a recursive function which drills down into a $form_state['values']
+ * array to find and change a nested field value. This function is called from
+ * an #element_validate function call.
+ *
+ * @param $form_state_values       array On first call, this is the entire
+ *                                 $form_state['values'] array; on subsequent
+ *                                 calls, this array contains a subset of the
+ *                                 values array.
+ *
+ * @param $element_field_parents   array An indexed array of the value's
+ *                                 parents.
+ *
+ * @param $element                 array The original $element as passed in to
+ *                                 the parent validation function.
+ *
+ * @param $function_call           string The name of the processing function
+ *                                 to call when the value element is found.
+ *                                 This function should accept the value array
+ *                                 and the parent $element as arguments - in
+ *                                 that order - and should return the new
+ *                                 value, which may be an array, string, etc.
+ *
+ * @return mixed
+ */
+function _fcl_ribbons_holiday_search_tiles_field_holiday_tiles_types_element_validate($form_state_values, $element_field_parents, $element, $function_call) {
+  // If $element_field_parents is an array and contains exactly one element,
+  // then we are at the bottom level and can set the new value on the element;
+  // otherwise, we remove the first key/value pair off the front of the
+  // $element_field_parents array and use the value of the sliced key to pass
+  // a sub-array from $form_state_values back into this function.
+  if (count($element_field_parents) == 1) {
+    // We're at the bottom level; set
+    // $form_state_values[$element_field_parents[0]] = $new_value and return
+    // $form_state_values.
+    if (isset($form_state_values[$element_field_parents[0]],
+      $form_state_values[$element_field_parents[0]][$element['#field_name']])) {
+      $form_state_values[$element_field_parents[0]][$element['#field_name']] = call_user_func($function_call, $form_state_values[$element_field_parents[0]][$element['#field_name']], $element);
+    }
+    else {
+      // Show an error but don't prevent the form from saving; we might still
+      // be able to continue.
+      $message_text = '@function: Unable to locate the @element array key.';
+      $message_array = array(
+        '@function' => __FUNCTION__,
+        '@element' => $element_field_parents[0],
+      );
+      drupal_set_message(t($message_text, $message_array), 'warning');
+      watchdog('fcl_ribbons_holiday_search_tiles', $message_text, $message_array, WATCHDOG_WARNING);
+    }
+  }
+  else {
+    $child_array_key = array_shift($element_field_parents);
+
+    if (array_key_exists($child_array_key, $form_state_values)) {
+      $form_state_values[$child_array_key] = _fcl_ribbons_holiday_search_tiles_field_holiday_tiles_types_element_validate($form_state_values[$child_array_key], $element_field_parents, $element, $function_call);
+    }
+    else {
+      // Show an error but don't prevent the form from saving; we might still
+      // be able to continue.
+      $message_text = '@function: Unable to locate the @element array key.';
+      $message_array = array(
+        '@function' => __FUNCTION__,
+        '@element' => $child_array_key,
+      );
+      drupal_set_message(t($message_text, $message_array), 'warning');
+      watchdog('fcl_ribbons_holiday_search_tiles', $message_text, $message_array, WATCHDOG_WARNING);
+    }
+  }
+
+  // Lastly, return the updated $form_state_values array.
+  return $form_state_values;
+}
+
+/**
+ * Callback function used by
+ * _fcl_ribbons_holiday_search_tiles_field_holiday_tiles_types_element_validate
+ * to convert various types of fields values from one to the other.
+ *
+ * Currently, this function only converts an array of checked values from a
+ * Drupal Form API Checkboxes element into a string compatible with a textfield
+ * field.
+ *
+ * @param $value_to_convert
+ * @param $element
+ *
+ * @return array
+ */
+function _fcl_ribbons_holiday_search_tiles_field_holiday_tiles_types_element_validate_convert_to_string($value_to_convert, $element) {
+  // Set a default return value.
+  $return_value = $value_to_convert;
+
+  switch ($element['#field_name']) {
+    case 'field_holiday_tiles_types':
+      // We're expecting an array structured like this:
+      //
+      //  [
+      //    '[language code]' => [
+      //      0 => [
+      //        'value' => [
+      //          'luxury' => 'luxury', // i.e. this field is ticked.
+      //          'special_offers' => 0, // i.e. this field isn't.
+      //        ],
+      //      ],
+      //    ],
+      //  ];
+      //
+      // It should have only one value array (the array identified by 0).
+
+      // Get the element's value's language code. Most elements will use this,
+      // but not necessarily all.
+      $language_code = $element['#language'];
+
+      // Pre-set up the node types string.
+      $selected_options_concatenated = '';
+
+      // Make sure the value contains all the arrays we need it to.
+      if (isset($value_to_convert, $value_to_convert[$language_code],
+        $value_to_convert[$language_code][0],
+        $value_to_convert[$language_code][0]['value'])) {
+        $checked_node_types = array();
+
+        if (is_array($value_to_convert[$language_code][0]['value'])) {
+          foreach ($value_to_convert[$language_code][0]['value'] as $key => $value) {
+            if ($key === $value) {
+              $checked_node_types[$key] = $value;
+            }
+          }
+
+          // Concatenate our node types into a string, escaping any commas so
+          // that we can correctly handle holiday types which contain commas.
+          $selected_options_concatenated = fcl_uk_utilities_array_to_textfield($checked_node_types);
+        }
+      }
+
+      // Set up a new value array which is compatible with the textfield field
+      // type.
+      $return_value = array(
+        $language_code => array(
+          0 => array(
+            'value' => $selected_options_concatenated,
+          ),
+        ),
+      );
+
+      break;
+  }
+
+  return $return_value;
+}

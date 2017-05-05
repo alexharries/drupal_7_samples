@@ -1,0 +1,22 @@
+<?php
+/**
+ * @file
+ * General helper functions for reuse.
+ *
+ * @todo: Rename to fcluk_utilities.
+ */
+
+module_load_include('inc', 'fcl_uk_utilities', 'fcl_uk_utilities.theme_support');
+
+/**
+ * Autoload functionality.
+ *
+ * Instead of adding functionality into this module, which often results in
+ * merge conflicts when releasing changes, please take a copy of the monkeys.inc
+ * file in the ./includes directory of this project, and add your functions in
+ * there.
+ *
+ * For more info @see https://jira.au.flitech.net/browse/FCUK-4178
+ */
+module_load_include('inc', 'fcl_uk_utilities', 'fcl_uk_utilities.autoloader');
+fcl_uk_utilities_autoload_includes('fcl_uk_utilities');

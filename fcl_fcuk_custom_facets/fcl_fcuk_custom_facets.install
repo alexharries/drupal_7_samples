@@ -1,0 +1,659 @@
+<?php
+/**
+ * @file
+ * Install functions for FCL FCUK Custom Facets.
+ */
+
+
+/**
+ * Update Custom Facet Ranges.
+ */
+function fcl_fcuk_custom_facets_update_7005(&$sandbox) {
+  // Update the price range to include tours.
+  db_update('fcl_facets_group_configs')
+  ->fields(array(
+    'search_paths' => 'flights/search
+holidays/search
+tours/search',
+  ))
+  ->condition('_id', '2')
+  ->execute();
+
+  // Remove tours search page from existing duration days range.
+  db_update('fcl_facets_group_configs')
+  ->fields(array(
+    'search_paths' => 'accommodation/search
+flights/search
+holidays/search
+cruises/search
+search',
+  ))
+  ->condition('_id', '1')
+  ->execute();
+
+  // Add a new range for duration days for tours only.
+  db_insert('fcl_facets_group_configs')
+  ->fields([
+    'type' => 'Numeric',
+    'field_id' => 'iss_duration_days',
+    'range_start' => '1',
+    'range_end' => '28',
+    'range_gap' => '7',
+    'show_zero' => '0',
+    'include_before' => '0',
+    'include_after' => '1',
+    'before_text' => 'Up to @upper_limit',
+    'range_text' => '@lower_limit to @upper_limit days',
+    'after_text' => 'Over 1 month',
+    'search_paths' => 'tours/search',
+    'display_precision' => '0',
+    'solr_precision' => '0',
+    'range_include' => 'lower',
+    'use_gmdate' => '0',
+  ])
+  ->execute();
+}
+
+/**
+ * Add an airline code field to the supplier taxonomy.
+ */
+function fcl_fcuk_custom_facets_update_7006() {
+  $t = get_t();
+  $field_exists = field_info_field('field_airline_code');
+  if (!empty($field_exists)) {
+    $instance = array(
+      'field_name' => 'field_airline_code',
+      'entity_type' => 'taxonomy_term',
+      'label' => $t('Airline Code'),
+      'bundle' => 'fcl_product_supplier',
+      'description' => $t('If the supplier is an airline, enter their two-character code.'),
+      'widget' => array(
+        'type' => 'text_textfield',
+      ),
+      'display' => array(
+        'default' => array(
+          'type' => 'hidden',
+        ),
+        'teaser' => array(
+          'type' => 'hidden',
+        ),
+      ),
+    );
+    field_create_instance($instance);
+  }
+}
+
+/**
+ * Populate airline (supplier) terms with their codes based on existing product.
+ */
+function fcl_fcuk_custom_facets_update_7007(&$sandbox) {
+  // How many terms should be processed per pass. The higher this number is,
+  // the faster your update will complete, but the more likely your server will
+  // run out of memory or timeout.
+  $terms_per_pass = 5;
+
+  // Assemble the query.
+  $vocab_name = 'fcl_product_supplier';
+  $vocab = taxonomy_vocabulary_machine_name_load($vocab_name);
+  $query = db_select('taxonomy_term_data', 't');
+  $query->leftJoin('field_data_field_airline_code', 'c', 't.tid = c.entity_id AND c.bundle = :vocabname', array(':vocabname' => $vocab_name));
+  $query->leftJoin('fcl_procat_product', 'p', 't.tid = p.supplier_id');
+  $query
+    ->condition('t.vid', $vocab->vid)
+    ->isNull('c.field_airline_code_value')
+    ->isNotNull('p.airline_name')
+    ->where('CHAR_LENGTH(p.airline_name) = 2')
+    ->fields('t', array('tid'))
+    ->fields('p', array('airline_name'))
+    ->groupBy('tid');
+
+  // If this is the first pass through this update function then set some
+  // variables.
+  if (!isset($sandbox['total'])) {
+    $sandbox['total'] = $query->countQuery()->execute()->fetchField();
+    $sandbox['current'] = 0;
+  }
+
+  // Set the range for this pass.
+  $query->range(0, $terms_per_pass);
+  $result = $query->execute();
+
+  foreach ($result as $record) {
+    $term = taxonomy_term_load($record->tid);
+    if (!empty($record->airline_name) && strlen('' . $record->airline_name) == 2) {
+      $term->field_airline_code[LANGUAGE_NONE][0]['value'] = $record->airline_name;
+      taxonomy_term_save($term);
+    }
+    $sandbox['current']++;
+  }
+
+  // Set the value for finished. If current == total then finished will be 1,
+  // signifying we are done.
+  $sandbox['#finished'] = ($sandbox['current'] / $sandbox['total']);
+  if ($sandbox['#finished'] === 1) {
+    drupal_set_message(t('Finished processing @count airlines.', array('@count' => $sandbox['total'])));
+  }
+}
+
+/**
+ * Populate airline (supplier) terms with their codes based on hard-coded list.
+ */
+function fcl_fcuk_custom_facets_update_7008(&$sandbox) {
+  // How many terms should be processed per pass. The higher this number is,
+  // the faster your update will complete, but the more likely your server will
+  // run out of memory or timeout.
+  $terms_per_pass = 5;
+
+  // If this is the first pass through this update function then set some
+  // variables.
+  if (!isset($sandbox['total'])) {
+    $sandbox['codes'] = [
+      '9W' => 'Jet Airways',
+      'AA' => 'American Airlines',
+      'AC' => 'Air Canada',
+      'AF' => 'Air France',
+      'AY' => 'Finnair',
+      'BA' => 'British Airways',
+      'BE' => 'Flybe',
+      'BI' => 'Royal Brunei',
+      'BR' => 'Eva Airways',
+      'CA' => 'Air China',
+      'CI' => 'China Airlines',
+      'CX' => 'Cathay Pacific',
+      'CZ' => 'China Southern Airlines',
+      'DL' => 'Delta Airlines',
+      'EI' => 'Aer Lingus',
+      'EK' => 'Emirates',
+      'ET' => 'Ethiopian Airlines',
+      'EY' => 'Etihad Airways',
+      'FI' => 'Iceland Air',
+      'GA' => 'Garuda',
+      'GF' => 'Gulf Air',
+      'JJ' => 'TAM - LINHAS AEREAS',
+      'KE' => 'Korean Airlines',
+      'KL' => 'KLM',
+      'KQ' => 'Kenya Airways',
+      'KU' => 'Kuwait Airways',
+      'LA' => 'LAN CHILE',
+      'LH' => 'Lufthansa',
+      'LS' => 'Jet2',
+      'LX' => 'Swiss Airlines',
+      'MH' => 'Malaysia Airlines',
+      'MK' => 'Air Mauritius',
+      'MS' => 'Egypt Air',
+      'MU' => 'China Eastern',
+      'NZ' => 'Air New Zealand',
+      'PS' => 'Philippine Airlines',
+      'QF' => 'Qantas',
+      'QR' => 'Qatar Airways',
+      'SA' => 'South African Airways',
+      'SK' => 'Scandanavian Airlines',
+      'SN' => 'Brussels Airlines',
+      'SQ' => 'Singapore Airlines',
+      'TG' => 'Thai Airways',
+      'TK' => 'Turkish Airlines',
+      'TP' => 'Tap Air Portugal',
+      'TS' => 'Air Transat',
+      'U2' => 'Easyjet',
+      'UA' => 'United Airlines',
+      'UL' => 'Sri Lankan Airlines',
+      'US' => 'US Airways',
+      'VA' => 'Virgin Australia',
+      'VN' => 'Vietnam Airlines',
+      'VS' => 'Virgin Atlantic',
+      'WY' => 'Oman Air',
+    ];
+    $sandbox['total'] = count($sandbox['codes']);
+    $sandbox['current'] = $sandbox['processed'] = 0;
+  }
+
+  for ($i = 0; $i < $terms_per_pass; $i++) {
+    if (empty($sandbox['codes'])) {
+      continue;
+    }
+
+    $name = current($sandbox['codes']);
+    $code = key($sandbox['codes']);
+
+    // First, check if the code is already assigned.
+    $query = db_select('field_data_field_airline_code', 'c');
+    $query->condition('c.bundle', 'fcl_product_supplier');
+    $query->condition('c.field_airline_code_value', $code);
+    $exists = $query->countQuery()->execute()->fetchField();
+
+    // If the code hasn't been assigned yet, try finding a term to assign it to.
+    if ($exists == 0) {
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', 'taxonomy_term')
+        ->entityCondition('bundle', 'fcl_product_supplier')
+        ->propertyCondition('name', '%' . $name . '%', 'like');
+      $result = $query->execute();
+      if (isset($result['taxonomy_term'])) {
+        // We have found at least one term with a matching name.
+        $term = taxonomy_term_load(key($result['taxonomy_term']));
+        $term->field_airline_code[LANGUAGE_NONE][0]['value'] = $code;
+        taxonomy_term_save($term);
+        $sandbox['processed']++;
+      }
+    }
+
+    unset($sandbox['codes'][$code]);
+    $sandbox['current']++;
+  }
+
+  // Set the value for finished. If current == total then finished will be 1,
+  // signifying we are done.
+  $sandbox['#finished'] = ($sandbox['current'] / $sandbox['total']);
+  if ($sandbox['#finished'] === 1) {
+    drupal_set_message(t('Finished processing @count airlines.', array('@count' => $sandbox['processed'])));
+  }
+}
+
+/**
+ * Link place entities (iata codes) to destinations based on hard-coded list.
+ */
+function fcl_fcuk_custom_facets_update_7009(&$sandbox) {
+  // How many terms should be processed per pass. The higher this number is,
+  // the faster your update will complete, but the more likely your server will
+  // run out of memory or timeout.
+  $terms_per_pass = 10;
+
+  // If this is the first pass through this update function then set some
+  // variables.
+  if (!isset($sandbox['total'])) {
+    $sandbox['codes'] = [
+      'ADL' => 'Adelaide',
+      'AGP' => 'Malaga',
+      'AKL' => 'Auckland',
+      'ALC' => 'Alicante',
+      'AMM' => 'Amman',
+      'AMS' => 'Amsterdam',
+      'ANU' => 'Antigua',
+      'ASP' => 'Alice Springs',
+      'ATH' => 'Athens',
+      'ATL' => 'Atlanta',
+      'AUH' => 'Abu Dhabi',
+      'AUS' => 'Austin',
+      'BAH' => 'Bahrain',
+      'BCN' => 'Barcelona',
+      'BDA' => 'Bermuda',
+      'BER' => 'Berlin',
+      'BGI' => 'Barbados',
+      'BKI' => 'Kota Kinabalu',
+      'BKK' => 'Bangkok',
+      'BLR' => 'Bangalore',
+      'BNE' => 'Brisbane',
+      'BOG' => 'Bogota',
+      'BOM' => 'Mumbai',
+      'BOS' => 'Boston',
+      'BRU' => 'Brussels',
+      'BSL' => 'Basel',
+      'BUD' => 'Budapest',
+      'BUE' => 'Buenos Aires',
+      'CAI' => 'Cairo',
+      'CCS' => 'Caracas',
+      'CGK' => 'Jakarta',
+      'CGN' => 'Cologne',
+      'CHC' => 'Christchurch',
+      'CMB' => 'Colombo',
+      'CNS' => 'Cairns',
+      'CNX' => 'Chiang Mai',
+      'CPT' => 'Cape Town',
+      'CTU' => 'Chengdu',
+      'CUN' => 'Cancun',
+      'DAR' => 'Dar es Salaam',
+      'DBV' => 'Dubrovnik',
+      'DEL' => 'Delhi',
+      'DEN' => 'Denver',
+      'DFW' => 'Dallas',
+      'DOH' => 'Doha',
+      'DPS' => 'Bali',
+      'DRW' => 'Darwin',
+      'DTT' => 'Detroit',
+      'DUB' => 'Dublin',
+      'DUR' => 'Durban',
+      'DXB' => 'Dubai',
+      'EDI' => 'Edinburgh',
+      'FAO' => 'Faro',
+      'FRA' => 'Frankfurt',
+      'GND' => 'Grenada',
+      'GOI' => 'Goa',
+      'GVA' => 'Geneva',
+      'HAM' => 'Hamburg',
+      'HAN' => 'Hanoi',
+      'HAV' => 'Havana',
+      'HKG' => 'Hong Kong',
+      'HKT' => 'Phuket',
+      'HNL' => 'Honolulu',
+      'HOU' => 'Houston',
+      'IBZ' => 'Ibiza',
+      'IST' => 'Istanbul',
+      'JNB' => 'Johannesburg',
+      'KBV' => 'Krabi',
+      'KEF' => 'Reykjavik',
+      'KHI' => 'Karachi',
+      'KIN' => 'Kingston',
+      'KRK' => 'Krakow',
+      'KTM' => 'Kathmandu',
+      'KUL' => 'Kuala Lumpur',
+      'KWI' => 'Kuwait',
+      'LAS' => 'Las Vegas',
+      'LAX' => 'Los Angeles',
+      'LGK' => 'Langkawi',
+      'LHE' => 'Lahore',
+      'LIM' => 'Lima',
+      'LIS' => 'Lisbon',
+      'LOS' => 'Lagos',
+      'LYO' => 'Lyon',
+      'MAA' => 'Chennai',
+      'MAD' => 'Madrid',
+      'MBJ' => 'Montego Bay',
+      'MCT' => 'Muscat',
+      'MEL' => 'Melbourne',
+      'MEX' => 'Mexico City',
+      'MIA' => 'Miami',
+      'MLA' => 'Malta',
+      'MLE' => 'Maldives',
+      'MNL' => 'Manila',
+      'MOW' => 'Moscow',
+      'MRS' => 'Marseille',
+      'MRU' => 'Mauritius',
+      'MSP' => 'Minneapolis',
+      'MSY' => 'New Orleans',
+      'MUN' => 'Munich',
+      'NAN' => 'Nadi',
+      'NAS' => 'Nassau',
+      'NBO' => 'Nairobi',
+      'NCE' => 'Nice',
+      'NYC' => 'New York',
+      'ORD' => 'Chicago',
+      'ORL' => 'Orlando',
+      'OSA' => 'Osaka',
+      'OSL' => 'Oslo',
+      'PAR' => 'Paris',
+      'PEK' => 'Beijing',
+      'PEN' => 'Penang',
+      'PER' => 'Perth',
+      'PHL' => 'Philadelphia',
+      'PHX' => 'Phoenix',
+      'PLZ' => 'Port Elizabeth - ZA',
+      'PNH' => 'Phnom Penh',
+      'POS' => 'Port of Spain',
+      'PRG' => 'Prague',
+      'PTY' => 'Panama City',
+      'PUJ' => 'Dominican Republic',
+      'PVG' => 'Shanghai',
+      'RAK' => 'Marrakesh',
+      'REP' => 'Siem Reap',
+      'RIO' => 'Rio de Janeiro',
+      'ROM' => 'Rome',
+      'RUH' => 'Riyadh',
+      'SAN' => 'San Diego',
+      'SAO' => 'Sao Paulo',
+      'SCL' => 'Santiago',
+      'SEA' => 'Seattle',
+      'SEL' => 'Seoul',
+      'SEZ' => 'Seychelles',
+      'SFO' => 'San Francisco',
+      'SGN' => 'Ho Chi Minh City',
+      'SIN' => 'Singapore',
+      'SKB' => 'Saint Kitts and Nevis',
+      'SLU' => 'Saint Lucia',
+      'SSH' => 'Sharm el-Sheikh',
+      'STO' => 'Stockholm',
+      'SYD' => 'Sydney',
+      'SZG' => 'Salzburg',
+      'TAB' => 'Tobago',
+      'TCI' => 'Tenerife',
+      'TPA' => 'Tampa',
+      'TYO' => 'Tokyo',
+      'UIO' => 'Quito',
+      'USM' => 'Koh Samui',
+      'VCE' => 'Venice',
+      'VIE' => 'Vienna',
+      'WAS' => 'Washington DC',
+      'WLG' => 'Wellington',
+      'YEA' => 'Edmonton',
+      'YHZ' => 'Halifax',
+      'YMQ' => 'Montreal',
+      'YOW' => 'Ottawa',
+      'YQB' => 'Quebec City',
+      'YTO' => 'Toronto',
+      'YVR' => 'Vancouver',
+      'YWG' => 'Winnipeg',
+      'YYC' => 'Calgary',
+      'ZNZ' => 'Zanzibar',
+      'ZQN' => 'Queenstown',
+      'ZRH' => 'Zurich',
+    ];
+    $sandbox['total'] = count($sandbox['codes']);
+    $sandbox['current'] = $sandbox['processed'] = 0;
+  }
+
+  for ($i = 0; $i < $terms_per_pass; $i++) {
+    if (empty($sandbox['codes'])) {
+      continue;
+    }
+
+    $name = current($sandbox['codes']);
+    $code = key($sandbox['codes']);
+
+    // First, check if the code is not already assigned to a destination.
+    $query = db_select('place', 'p');
+    $query->fields('p', ['place_id']);
+    $query->leftJoin('field_data_field_fcl_destination', 'd', 'd.entity_type = :entityname AND p.place_id = d.entity_id', array(':entityname' => "place"));
+    $query->condition('p.location_code', $code);
+    $query->isNull('d.field_fcl_destination_tid');
+    $pid = $query->execute()->fetchField();
+
+    // If the code hasn't been assigned yet, try finding a term to assign it to.
+    if (!empty($pid)) {
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', 'taxonomy_term')
+        ->entityCondition('bundle', 'fcl_product_destination')
+        ->propertyCondition('name', $name);
+      $result = $query->execute();
+      if (isset($result['taxonomy_term'])) {
+        // We have found at least one term with a matching name.
+        $destination = current($result['taxonomy_term']);
+        $destination = $destination->tid;
+        if (!empty($destination) && is_numeric($destination)) {
+          $place = place_load($pid, TRUE);
+          if (!empty($place)) {
+            $place = entity_metadata_wrapper('place', $place);
+            $place->field_fcl_destination->set([$destination]);
+            $place->save();
+          }
+          else {
+            watchdog('fcl_fcuk_custom_facets_update', 'Loading place @pid failed', ['@pid' => $pid], WATCHDOG_WARNING);
+          }
+          $sandbox['processed']++;
+        }
+      }
+    }
+    unset($sandbox['codes'][$code]);
+    $sandbox['current']++;
+  }
+
+  // Set the value for finished. If current == total then finished will be 1,
+  // signifying we are done.
+  $sandbox['#finished'] = ($sandbox['current'] / $sandbox['total']);
+  if ($sandbox['#finished'] === 1) {
+    drupal_set_message(t('Finished processing @count destinations.', array('@count' => $sandbox['processed'])));
+  }
+}
+
+/**
+ * Remove all data from legacy fields on holiday types.
+ */
+function fcl_fcuk_custom_facets_update_7011(&$sandbox) {
+  // Note: This shouldn't really be in this module as it has nothing to do with
+  // facets, but I don't have anywhere else to put it atm.
+  $t = get_t();
+
+  $node_type = 'holiday';
+  $fields_to_delete = [
+    'field_intro',
+    'field_body',
+    'field_content',
+    'field_form_autocomplete_value',
+    'field_search_form_image',
+    'field_override_popular_destinati',
+    'field_thumbnail_image',
+    'field_replace_tab',
+    'field_campaign_date',
+    'field_campaign_tab_title_1',
+    'field_campaign_tab_content_1',
+    'field_campaign_tab_title_2',
+    'field_campaign_tab_content_2',
+    'field_campaign_tab_title_3',
+    'field_campaign_tab_content_3',
+    'flag',
+    'field_tertiary_product',
+    'field_quaternary_product',
+    'field_quinary_product',
+  ];
+  $fields_to_restore = [
+    'field_tertiary_product' => $t('Tertiary Product'),
+    'field_quaternary_product' => $t('Quaternary Product'),
+    'field_quinary_product' => $t('Quinary Product'),
+  ];
+
+  // Delete the field instances.
+  $field_instances = field_info_instances('node', $node_type);
+  foreach ($fields_to_delete as $field_name) {
+    if (!empty($field_instances[$field_name])) {
+      $instance = $field_instances[$field_name];
+      field_delete_instance($instance);
+    }
+  }
+
+  foreach ($fields_to_restore as $field_to_restore => $label) {
+    // Restore the field.
+    $field_exists = field_info_field($field_to_restore);
+    if (!empty($field_exists)) {
+      $instance = [
+        'field_name' => $field_to_restore,
+        'entity_type' => 'node',
+        'label' => $label,
+        'bundle' => $node_type,
+      ];
+      field_create_instance($instance);
+    }
+
+    // Move the field to the "tabs" field group.
+    if (function_exists('field_group_read_groups')) {
+      $groups = field_group_read_groups(array(
+        'entity_type' => 'node',
+        'bundle'      => $node_type,
+      ));
+      // Remove from "to delete" group.
+      $group_to_delete = $groups['node'][$node_type]['form']['group_to_delete'];
+      $key = array_search($field_to_restore, $group_to_delete->children);
+      if ($key !== FALSE) {
+        unset($group_to_delete->children[$key]);
+        field_group_group_save($group_to_delete);
+      }
+      // Add to "tabs" group.
+      $group_tabs = $groups['node'][$node_type]['form']['group_tabs'];
+      $group_tabs->children[] = $field_to_restore;
+      field_group_group_save($group_tabs);
+    }
+  }
+}
+
+/**
+ * Update new field on continent hub pages with defaults.
+ */
+function fcl_fcuk_custom_facets_update_7012(&$sandbox) {
+  $bundle = 'continent';
+  fcl_fcuk_custom_facets_perform_node_updates($sandbox, $bundle);
+}
+
+/**
+ * Update new field on country hub pages with defaults.
+ */
+function fcl_fcuk_custom_facets_update_7013(&$sandbox) {
+  $bundle = 'country';
+  fcl_fcuk_custom_facets_perform_node_updates($sandbox, $bundle);
+}
+
+/**
+ * Update new field on city hub pages with defaults.
+ */
+function fcl_fcuk_custom_facets_update_7014(&$sandbox) {
+  $bundle = 'city';
+  fcl_fcuk_custom_facets_perform_node_updates($sandbox, $bundle);
+}
+
+/**
+ * Update the nodes.
+ */
+function fcl_fcuk_custom_facets_perform_node_updates(&$sandbox, $bundle) {
+  // How many nodes should be processed per pass. The higher this number is,
+  // the faster your update will complete, but the more likely your server will
+  // run out of memory or timeout.
+  $nodes_per_pass = 5;
+
+  // Assemble the query.
+  // EFQ doesn't support IS NULL, so we need a proper query.
+  $query = db_select('node', 'n');
+  $query->leftJoin('field_data_field_destination_level', 'l', 'n.nid = l.entity_id AND l.entity_type = :entity_type', array(':entity_type' => 'node'));
+  $query
+    ->condition('n.type', $bundle)
+    ->isNull('l.field_destination_level_value')
+    ->fields('n', array('nid'));
+
+  // If this is the first pass through this update function then set some
+  // variables.
+  if (!isset($sandbox['total'])) {
+    $sandbox['total'] = $query->countQuery()->execute()->fetchField();
+    $sandbox['current'] = 0;
+  }
+
+  // Set the range for this pass.
+  $query->range(0, $nodes_per_pass);
+  $result = $query->execute();
+
+  if (empty($result)) {
+    $sandbox['current'] = $sandbox['total'];
+  }
+  else {
+    foreach ($result as $record) {
+      $node = node_load($record->nid);
+      $node->field_destination_level[LANGUAGE_NONE][0]['value'] = $bundle;
+      node_save($node);
+      $sandbox['current']++;
+    }
+  }
+
+  // Set the value for finished. If current == total then finished will be 1,
+  // signifying we are done.
+  $sandbox['#finished'] = ($sandbox['current'] / $sandbox['total']);
+  if ($sandbox['#finished'] === 1) {
+    drupal_set_message(t('Finished processing @count items.', array('@count' => $sandbox['total'])));
+  }
+}
+
+/**
+ * Update Custom Facet Search Path for Group Tours.
+ */
+function fcl_fcuk_custom_facets_update_7015(&$sandbox) {
+  // Update the search path changing tours to group-tours.
+  db_update('fcl_facets_group_configs')
+    ->expression('search_paths', "replace(search_paths, 'tours/search', 'group-tours/search')")
+    ->execute();
+}
+
+/**
+ * Update Custom Facet Tours Month Date Range Text.
+ */
+function fcl_fcuk_custom_facets_update_7016(&$sandbox) {
+  // Update date range text to match the search form.
+  db_update('fcl_facets_group_configs')
+    ->fields(array(
+      'after_text' => '28 or More Days',
+    ))
+    ->condition('machine_name', 'group_config_6')
+    ->execute();
+}

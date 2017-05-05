@@ -1,0 +1,98 @@
+<?php
+
+/**
+ * @file
+ * Installation bits and bobs for the Flight Centre UK Utilities module.
+ */
+
+/**
+ * Enable the Better Google Image Sitemap module.
+ */
+function fcl_uk_utilities_update_7100() {
+  $return = module_enable(array('better_google_image_sitemap'));
+
+  if ($return) {
+    return t('Enabled the Better Google Image Sitemap module. The sitemap will be published at /image-sitemap.xml once Cron has run a few times. Please see admin/config/search/image-sitemap to configure.');
+  }
+  else {
+    // In case of an error, simply throw an exception with an error message.
+    return t('Something went wrong enabling Better Google Image Sitemap; please check the server logs for more info. Sad face :(');
+  }
+}
+
+/**
+ * Enable the FCL Ribbons Flights Products Listing module.
+ */
+function fcl_uk_utilities_update_7101() {
+  $feature_name = 'fcl_ribbons_flights_product_listing';
+  $return = module_enable(array($feature_name));
+
+  // Also do a features revert on the module.
+  features_revert_module($feature_name);
+
+  if ($return) {
+    return t('Enabled the FCL Ribbons Flights Products Listing module. Please see admin/structure/paragraphs/fcl-ribbons-flights-listing to configure.');
+  }
+  else {
+    // In case of an error, simply throw an exception with an error message.
+    return t('Something went wrong enabling FCL Ribbons Flights Products Listing; please check the server logs for more info. Sad face :(');
+  }
+}
+
+/**
+ * Revert the fc_flights feature's Views.
+ */
+function fcl_uk_utilities_update_7102() {
+  $module = 'fc_flights';
+
+  if (($feature = feature_load($module, TRUE)) && module_exists($module)) {
+    if (features_hook('views_view', 'features_revert')) {
+      features_revert(array($module => array('views_view')));
+      return t('Reverted the Views component of the fc_flights feature.');
+    }
+  }
+}
+
+/**
+ * Enable the Communication Pods module.
+ *
+ * @note: This function call might need to be renamed when other feature
+ *        tickets are merged onto master.
+ */
+function fcl_uk_utilities_update_7103() {
+  $return = module_enable(array('fcl_fcuk_communication_pods'));
+
+  if ($return) {
+    return t('Enabled the Communication Pods module. This module doesn\'t have any user configuraboo options, but you might need to clear your views cache before you see anything different. :)');
+  }
+  else {
+    // In case of an error, simply throw an exception with an error message.
+    return t('Something went wrong enabling the Communication Pods module; please check the server logs for more info. Sad face :(');
+  }
+}
+
+/**
+ * Enable the FCL FCUK Footer 2017 module.
+ */
+function fcl_uk_utilities_update_7104() {
+  // If we're on the FCUK site, enable the new footer.
+  module_load_include('module', 'fcl_uk_utilities');
+
+  if (fcl_uk_utilities_get_sites_directory() == 'flightcentre.co.uk') {
+    watchdog(__FUNCTION__, 'Oyee');
+    $return = module_enable(['fcl_fcuk_footer_2017']);
+
+    if ($return) {
+      return t('Enabled the fcl_fcuk_footer_2017 module.');
+    }
+    else {
+      // In case of an error, simply throw an exception with an error message.
+      return t('Something went wrong enabling the fcl_fcuk_footer_2017 module; please check the server logs for more info. Sad face :(');
+    }
+  }
+  else {
+    // In case of an error, simply throw an exception with an error message.
+    return t('Didn\'t enable the fcl_fcuk_footer_2017 module because this isn\'t FCUK - site seems to be @site.',
+      ['@site' => fcl_uk_utilities_get_sites_directory()]);
+  }
+}

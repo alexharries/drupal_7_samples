@@ -1,0 +1,17 @@
+/*
+ * @file
+ * CSS styles for this communication pod.
+ */
+
+/*
+  N.b.: if referencing images, use relative references such as url('./images/monkey.jpg').
+ */
+
+/* The Trustpilot pod's main container. */
+.communication-pod--our-customers-love-us-trustpilot-pod {
+}
+
+/* Hide the TP link. */
+.communication-pod--our-customers-love-us-trustpilot-pod .trustpilot-link {
+  display: none;
+}

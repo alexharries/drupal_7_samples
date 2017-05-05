@@ -1,0 +1,294 @@
+<?php
+/**
+ * @file
+ * Code for the Flights Product Listing Ribbon feature.
+ */
+
+// When we convert from a Features-exported Paragraph to a fcluk_pages-style
+// paragraph, we no longer include the .features.inc file, which removes the
+// hook_paragraphs_info() call; this in turn means we no longer automagically
+// load in the .features.field_base.inc and .features.field_instance.inc files,
+// we we need to manually include those later in order to programmatically load
+// in the definition arrays for the fields.
+// include_once 'fcl_ribbons_flights_product_listing.features.inc';
+include_once 'fcl_ribbons_flights_product_listing.functions.inc';
+include_once 'fcl_ribbons_flights_product_listing.admin.inc';
+
+/**
+ * Custom code lives below this line.
+ */
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function fcl_ribbons_flights_product_listing_ctools_plugin_directory($owner, $plugin_type) {
+  if (($owner == 'fcluk_pages') && ($plugin_type == 'paragraph_types')) {
+    return 'plugins/' . $plugin_type;
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function fcl_ribbons_flights_product_listing_menu() {
+  $menu = [];
+  
+  $menu['admin/structure/paragraphs/fcl-ribbons-flights-listing'] = [
+    'title' => 'Flights Listing ribbons options',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => ['fcl_ribbons_flights_product_listing_admin_form'],
+    'access arguments' => ['administer paragraphs bundles'],
+    'menu type' => MENU_LOCAL_TASK,
+  ];
+  
+  return $menu;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function fcl_ribbons_flights_product_listing_theme() {
+  $theme = [];
+  
+  $theme['paragraphs_item__flights_product_listing'] = [
+    'render element' => 'elements',
+    'template' => 'paragraphs-item--flights-product-listing',
+    'path' => drupal_get_path('module', 'fcl_ribbons_flights_product_listing') . '/templates',
+  ];
+  
+  return $theme;
+}
+
+/**
+ * Implements template_preprocess_paragraphs_items.
+ *
+ * @param array $variables
+ *   The variables array.
+ *
+ * @param string $hook
+ *   The hook being called.
+ */
+function fcl_ribbons_flights_product_listing_preprocess_paragraphs_items(&$variables, $hook) {
+  // Add the module's CSS on pages where we're displaying a paragraph.
+  // @TODO: check whether we need to prevent duplicate calls to add this CSS
+  // file to the page if more than one paragraph page node is rendered on a
+  // page call.
+  drupal_add_css(drupal_get_path('module', 'fcl_ribbons_flights_product_listing') . '/css/fcl-ribbons-flights-product-listing.css');
+  drupal_add_js(drupal_get_path('module', 'fcl_ribbons_flights_product_listing') . '/js/fcl-ribbons-flights-product-listing.js');
+}
+
+/**
+ * Implements hook_preprocess_HOOK().
+ *
+ * @param array $variables
+ *   The variables array for the entity.
+ */
+function fcl_ribbons_flights_product_listing_preprocess_entity(&$variables) {
+  if ($variables['entity_type'] == 'paragraphs_item') {
+    // If the paragraph type is flights_product_listing, preprocess it.
+    $paragraph_type = $variables['paragraphs_item']->bundle;
+    
+    if ($paragraph_type == 'flights_product_listing') {
+      fcl_ribbons_flights_product_listing_preprocess_flights_product_listing_paragraph_item($variables);
+    }
+  }
+}
+
+/**
+ * Generate a flights table from the flights_product_listing's parameters.
+ *
+ * The variables are: field_productlist_flts_expts, field_productlist_flts_dest
+ * and field_productlist_flts_airlns.
+ *
+ * We need to turn that into a Solr query, and then build a table of results
+ * and put that into a variable called flights_product_listing.
+ *
+ * Once generated, we cache the results for better performance.
+ *
+ * @param array $variables
+ *   The variables array for the entity.
+ */
+function fcl_ribbons_flights_product_listing_preprocess_flights_product_listing_paragraph_item(&$variables) {
+  $starting_points = $airline_names = $destinations = $flight_classes = [];
+  
+  $cache_enabled = variable_get('fcl_ribbons_flights_product_listing_cache_enabled', FCL_RIBBONS_FLIGHTS_PRODUCT_LISTING_CACHE_ENABLED_DEFAULT);
+  
+  // Do we have starting points?
+  if (array_key_exists('field_productlist_flts_expts', $variables)
+    && isset($variables['field_productlist_flts_expts'][0]['safe_value'])
+  ) {
+    $starting_points = _fcl_ribbons_flights_product_listing_textarea_to_array($variables['field_productlist_flts_expts'][0]['safe_value']);
+  }
+  
+  // Do we have a list of destinations?
+  if (array_key_exists('field_productlist_flts_dest', $variables)
+    && isset($variables['field_productlist_flts_dest'][0]['safe_value'])
+  ) {
+    $destinations = _fcl_ribbons_flights_product_listing_textarea_to_array($variables['field_productlist_flts_dest'][0]['safe_value']);
+  }
+  
+  // Do we have airline_names (e.g. one or more airlines)?
+  if (array_key_exists('field_productlist_flts_airlns', $variables)
+    && isset($variables['field_productlist_flts_airlns'][0]['safe_value'])
+  ) {
+    $airline_names = _fcl_ribbons_flights_product_listing_textarea_to_array($variables['field_productlist_flts_airlns'][0]['safe_value']);
+  }
+  
+  // Do we have any flight class(es)?
+  if (array_key_exists('field_productlist_flts_classes', $variables)
+    && (count($variables['field_productlist_flts_classes']) > 0)
+  ) {
+    // Get the flight classes.
+    foreach (element_children($variables['field_productlist_flts_classes']) as $child) {
+      $class = $variables['field_productlist_flts_classes'][$child]['value'];
+      $flight_classes[$class] = $class;
+    }
+  }
+  
+  // What's the limit, Mister Wolf?
+  $max_results = $variables['field_productlist_max_results'][0]['value'];
+    
+  // Are we using the site default max results?
+  if ($max_results == FCL_RIBBONS_FLIGHTS_PRODUCT_LISTING_SEARCH_RESULTS_DEFAULT) {
+    // Yes.
+    $max_results = variable_get('fcl_ribbons_flights_products_listing_search_results_limit', FCL_RIBBONS_FLIGHTS_PRODUCT_LISTING_SEARCH_RESULTS_DEFAULT_LIMIT);
+  }
+  
+  // Generate a cache ID, in the form
+  // fclproductlisting:[starting point 1]-[starting point 2]-[starting point n]:[destination 1]-[destination 2]-[destination n]:[supplier 1]-[supplier 2]-[supplier n]:[count].
+  $cache_id = 'fclproductlisting:' . strtolower(implode('-', $starting_points)) . ':' . strtolower(implode('-', $destinations)) . ':' . strtolower(implode('-', $airline_names)) . ':' . strtolower(implode('-', $flight_classes));
+  
+  // Check if the data has already been built and cached.
+  if ($cache_enabled && ($cache = cache_get($cache_id))) {
+    $variables['flights_product_listing'] = $cache->data;
+  }
+  else {
+    // Not found in the cache; generate it now. Create a new solr query.
+    $solr_server_id = variable_get('fcl_ribbons_flights_products_listing_solr_server_id', FCL_RIBBONS_FLIGHTS_PRODUCT_LISTING_SOLR_SERVER_ID_DEFAULT);
+    
+    // Create a query object.
+    $solr = apachesolr_get_solr($solr_server_id);
+    $query = apachesolr_drupal_query('apachesolr', [], '', '', $solr);
+    
+    // Add basic filters.
+    $query->addFilter('entity_type', 'fcl_procat_product');
+    $query->addFilter('ss_product_category', 'Air Transportation');
+    $query->addFilter('ss_product_status', 'Published');
+    
+    // Add sort.
+    $query->addParam('sort', 'fs_price asc');
+    
+    // Add starting point(s), if we have any.
+    if (count($starting_points) > 0) {
+      $query->addFilter('ss_departure', fcl_uk_utilities_array_to_solr_query($starting_points));
+    }
+    
+    // Add destination(s), if we have any.
+    if (count($destinations) > 0) {
+      $query->addFilter('ss_destination', fcl_uk_utilities_array_to_solr_query($destinations));
+    }
+    
+    // Add airline(s), if we have any.
+    if (count($airline_names) > 0) {
+      $airline_codes = fcl_uk_utilities_airline_names_to_airline_codes($airline_names);
+      
+      // We _were_ checking whether $airline_codes contained anything before
+      // adding this filter - i.e. if the editor entered invalid airline codes
+      // and fcl_uk_utilities_airline_names_to_airline_codes() returned no
+      // results, we didn't add this filter, but this had the effect of
+      // silently failing to filter correctly, so now we fail in a noisy way.
+      if (count($airline_codes) < count($airline_names)) {
+        // Is it a node?
+        if ($variables['paragraphs_item']->hostEntityType() == 'node') {
+          // Get the node ID.
+          $nid = $variables['paragraphs_item']->hostEntityId();
+          
+          // Does the current user have access to edit this node?
+          if (node_access('update', node_load($nid))) {
+            $message_variables = [
+              '@airline_names' => count($airline_names) > 0 ? '"' . implode('", "', $airline_names) . '"' : t('none'),
+              '@airline_codes' => count($airline_codes) > 0 ? '"' . implode('", "', $airline_codes) . '"' : t('none'),
+              '@node_edit_url' => url('node/' . $nid . '/edit'),
+            ];
+            
+            drupal_set_message(t('One or more of the airline names which have been specified for the Full-Width Flights Product Listing paragraph were not recognised. The following airline names were given: <em>@airline_names</em> - only the following airline codes were found from these names: <em>@airline_codes</em>. Please <a href="@node_edit_url">edit this page</a> to fix this problem.', $message_variables), 'error');
+          }
+        }
+      }
+      
+      // Do we have at least one airline code to filter by?
+      if (count($airline_codes) > 0) {
+        $query->addFilter('ss_airline_code', fcl_uk_utilities_array_to_solr_query($airline_codes));
+      }
+    }
+    
+    // Add class(es), if we have any.
+    if (count($flight_classes) > 0) {
+      $query->addFilter('ss_product_selection', fcl_uk_utilities_array_to_solr_query($flight_classes));
+    }
+    
+    // Avoid returning a squillion results. If a results limit has been
+    // specified, add a row limit here.
+    if ($max_results > 0) {
+      $query->addParam('rows', $max_results);
+    }
+    
+    // Setting default values.
+    $view_mode = 'full';
+    
+    // Fetch results.
+    $result = $query->search();
+    $result_docs = $result->response->docs;
+    $items = [];
+    
+    // Only add the product's entity to the list if it loads and renders
+    // successfully.
+    // @TODO: consider adding some debug/diagnostic code here if the entity
+    // can't be loaded for any reason.
+    foreach ($result_docs as $result_doc) {
+      if (!empty($result_doc->is_sku)) {
+        if ($product_entity = fcl_procat_product_sku_load($result_doc->is_sku)) {
+          if ($item = entity_view('fcl_procat_product', [$product_entity], $view_mode)) {
+            // Procat product entities are returned in the form:
+            //
+            // array(
+            //   'fcl_procat_product' => array(
+            //     <entity ID> => array(
+            //       <render array>...
+            //     ),
+            //   ),
+            // );
+            //
+            // ... so we need to trim the two outer array layers off.
+            $item = reset($item);
+            $item = reset($item);
+            
+            // Get the SKU and use that to de-duplicate the results.
+            $sku = $item['sku']['#items'][0]['value'];
+            
+            // Place the render array into the results array.
+            $items[$sku] = render($item);
+          }
+        }
+      }
+    }
+    
+    // Generate the list.
+    $variables['flights_product_listing'] = [
+      '#theme' => 'item_list',
+      '#items' => $items,
+      '#type' => 'ul',
+    ];
+    
+    // Reset the Apache Solr static response cache.
+    drupal_static_reset('apachesolr_static_response_cache');
+    
+    if ($cache_enabled) {
+      // Set the cache, with expiry in the near future.
+      $expire_timestamp = REQUEST_TIME +
+        variable_get('fcl_ribbons_flights_products_listing_cache_expiry', FCL_RIBBONS_FLIGHTS_PRODUCT_LISTING_CACHE_EXPIRY_DEFAULT);
+      
+      cache_set($cache_id, $variables['flights_product_listing'], 'cache', $expire_timestamp);
+    }
+  }
+}

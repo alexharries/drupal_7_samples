@@ -1,0 +1,28 @@
+; Info file for this pod.
+pod_name = Example Communication Pod
+
+; If you want to mark this pod as being disabled, uncomment the following line.
+
+; disabled = 1
+
+; If you want to specify that this pod should only be shown on certain paths,
+; uncomment and modify the following lines as necessary. You can use the
+; same format for specifying paths here as the Block module uses for block
+; visibility by path.
+
+; paths[] = node/123
+; paths[] = monkey/*
+; paths[] = admin
+; paths[] = admin/*
+
+; If you want to specify one or more preprocess functions for this pod,
+; you need to place them in a .inc file in this pod's directory. In the example
+; below, the include file is example__disabled.inc (you should always use .inc
+; as the file extension), and the preprocess functions are
+; communication_pod_example__inc_preprocess_1 and
+; communication_pod_example__inc_preprocess_2. Preprocess functions will be
+; run in the order they are listed here.
+
+; preprocess_file = example__disabled.inc
+; preprocess_functions[] = communication_pod_example__inc_preprocess_1
+; preprocess_functions[] = communication_pod_example__inc_preprocess_2

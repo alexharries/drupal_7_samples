@@ -1,0 +1,9 @@
+; Info file for this pod.
+pod_name = Going on holiday with flight centre is fantastically easy
+
+; This pod is disabled for the first round of development on this feature.
+disabled = 1
+
+; Only show on the holidays search results page.
+paths[] = holidays/search
+paths[] = holidays/search/*

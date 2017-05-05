@@ -1,0 +1,949 @@
+//
+// @file
+// Styles for the 2017 FCUK Footer.
+//
+/*
+
+Sample HTML for the footer which this file styles:
+
+<footer id="footer" class="variant-a"> (or variant-b)
+  <div class="container footer-top-section">
+    <!-- First row - "need more help?" and award logos. -->
+    <div class="row">
+      <div class="col-md-6 need-more-help-contact-an-expert">
+        <h2><?php print t('Need more help?'); ?></h2>
+        <p>[todo: contact an expert]</p>
+      </div>
+
+      <div class="col-md-5 offset-md-1 top-award-logos">
+        <div class="row">
+          <div class="col-md-4 winner-british-travel-awards-2016">
+            <?php print t('Winner - British Travel Awards 2016 - Best Regional Travel Agency'); ?>
+          </div>
+
+          <div class="col-md-4 number-1-to-australia">
+            <?php print t('Number One to Australia'); ?>
+          </div>
+
+          <div class="col-md-4 good-housekeeping-reader-recommended">
+            <?php print t('Good Housekeeping Reader Recommended 2016'); ?>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Second row - quick links menus, 5 columns. -->
+    <div class="row">
+      <div class="footer-links">
+        <div class="footer-links-list footer-links-list-1">
+          <h4><?php print t('Quick Links'); ?></h4>
+          <ul>
+            <li>[todo: links list - quick links]</li>
+          </ul>
+        </div>
+
+        <div class="footer-links-list footer-links-list-2">
+          <h4><?php print t('Flights'); ?></h4>
+          <ul>
+            <li>[todo: links list - flights]</li>
+          </ul>
+        </div>
+
+        <div class="footer-links-list footer-links-list-3">
+          <h4><?php print t('Holidays'); ?></h4>
+          <ul>
+            <li>[todo: links list - holidays]</li>
+          </ul>
+        </div>
+
+        <div class="footer-links-list footer-links-list-4">
+          <h4><?php print t('About Flight Centre'); ?></h4>
+          <ul>
+            <li>[todo: links list - about flight centre]</li>
+          </ul>
+        </div>
+
+        <div class="footer-links-list footer-links-list-5">
+          <h4><?php print t('Contact us'); ?></h4>
+          <ul>
+            <li>[todo: links list - contact us]</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Third row - newsletter subscription and social links. -->
+    <div class="row">
+      <div class="col-md-7 newsletter-signup">
+        <h4><?php print t('Be the first to get our great deals:'); ?></h4>
+        <p>[todo: newsletter signup static form]</p>
+      </div>
+
+      <div class="col-md-2 offset-md-3 social-links">
+        <ul>
+          <li class="twitter">
+            <?php print l(t('@twitter_username on Twitter', ['@twitter_username' => '@flightcentreUK']), 'http://twitter.com/flightcentreUK'); ?>
+          </li>
+
+          <li class="facebook">
+            <?php print l(t('/@facebook_pagename on Facebook', ['@facebook_pagename' => 'FlightCentreUK']), 'https://www.facebook.com/FlightCentreUK'); ?>
+          </li>
+
+          <li class="instagram">
+            <?php print l(t('@instagram_username on Instagram', ['@instagram_username' => 'flightcentreuk']), 'https://instagram.com/flightcentreuk'); ?>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="container footer-bottom-section">
+    <!-- First row - more award logos and accreditations. -->
+    <div class="row bottom-award-logos">
+      <div class="col-md-2 travelife-award">
+        <?php print t('Travelife - Sustainability In Action - Tour Operators and Travel Agents'); ?>
+      </div>
+
+      <div class="col-md-2 sunday-times-best-to-work-for">
+        <?php print t('The Sunday Times - 100 Best Companies To Work For'); ?>
+      </div>
+
+      <div class="col-md-2 iata-accredited">
+        <?php print t('IATA Accredited Travel Agent'); ?>
+      </div>
+
+      <div class="col-md-2 winner-british-travel-awards-2016">
+          <?php print t('Winner - British Travel Awards 2016 - Best Regional Travel Agency'); ?>
+        </div>
+
+      <div class="col-md-2 abta">
+        <?php print t('ABTA - Travel With Confidence'); ?>
+      </div>
+
+      <div class="col-md-2 atol-protected">
+        <?php print t('ATOL Protected'); ?>
+      </div>
+    </div>
+
+    <!-- Second row - Copyright, company number, and phone calls information. -->
+    <div class="row copyright-phone-info">
+      <p class="copyright-company-number">
+        <?php print t('&copy; @year Flight Centre (UK) Limited, Registered in England No. 02937210', ['@year' => date('Y')]); ?>
+      </p>
+
+      <p class="phone-info">
+        <?php print t('<superscript>*</superscript> 0800 calls are free for landlines and mobiles. 0333 calls are included within inclusive minutes package on mobiles, otherwise standard rates apply. 0844/0845 calls are 7p/pm plus your local carrier charge.'); ?>
+      </p>
+    </div>
+  </div>
+</footer>
+
+ */
+// Bring in the base.
+@import "mini-base";
+
+footer#footer {
+  margin: ($row-height * 4) 0 0 0;
+  clear: both;
+  font-size: 0.75rem;
+
+  // Selectively show elements at certain breakpoints.
+  .mobile-show,
+  .tablet-show,
+  .desktop-show {
+    display: none;
+  }
+
+  // (Re)define the clearfix mixin.
+  .clearfix {
+    @include clearfix();
+  }
+
+  // Button resets.
+  button.ctabutton,
+  .newsletter-signup-form .form-submit,
+  .newsletter-signup-form input[type=submit] {
+    line-height: inherit;
+    height: initial;
+    width: auto;
+    border: 0;
+    margin: 0;
+    text-decoration: none;
+    min-height: initial;
+    -moz-border-radius: 0;
+    -webkit-border-radius: 0;
+    border-radius: 0;
+    -moz-box-shadow: none;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    text-shadow: initial;
+  }
+
+  // Reset overridden styles.
+  //*, <-- You can't safely use * here; it overrides a lot of the child styles.
+  h2,
+  h3,
+  h4,
+  p,
+  ul,
+  li {
+    color: inherit;
+  }
+
+  // Underline links on hover.
+  a:hover {
+    text-decoration: underline;
+  }
+
+  .footer-top-section {
+    margin-bottom: 2px;
+    padding-top: ($row-height * 2);
+    padding-bottom: $row-height;
+
+    .need-more-help-contact-an-expert {
+      margin-bottom: $row-height;
+
+      h2.need-more-help-title {
+        font-family: $gillsans;
+        margin: 0 0 ($row-height * 0.75) 0;
+        color: $BLACK;
+      }
+
+      .ctabutton-wrapper {
+        position: relative;
+
+        .ctabutton-button-wrapper {
+          button.ctabutton {
+            background-color: $RED;
+            color: $WHITE;
+            font-size: 20px;
+            font-family: $gillsans;
+            width: 100%;
+            padding: ($row-height / 2) 0 ($row-height / 2) ($site-gutter-width * 10);
+            text-align: left;
+
+            // Add the consultant logo.
+            .consultant-image {
+              content: "";
+              display: block;
+              position: absolute;
+              right: $site-gutter-width;
+
+              // Note that the top position will depend on the image height;
+              // if you change the image, please make sure you check this
+              // value.
+              top: -69px;
+              @include background-image-retina(transparent, 'consultant-default', png, center, center);
+              background-size: 150px 152px;
+              width: 102px;
+              height: 117px;
+              z-index: auto;
+            }
+          }
+        }
+
+        .ctabutton-cta-wrapper {
+          display: none;
+        }
+      }
+
+      // Phone styles - copied from the fcl_uk_fc theme but with the desktop
+      // styles always applied.
+      .pane-phone {
+        height: auto;
+        color: inherit;
+        background-color: inherit;
+        padding: 12px 0 0 0;
+
+        .phone-number-label {
+          padding: 0 0 ($row-height / 4) 0;
+        }
+
+        div.phone-number-mobile-label,
+        a.phone-number-mobile,
+        a.tel-tag,
+        div.mobile {
+          display: block;
+        }
+
+        div.phone-number-primary-label,
+        a.phone-number-primary,
+        .phone-number {
+          display: none;
+        }
+
+        // Show the phone icon on desktop, and in the footer at all times.
+        &:before {
+          content: '';
+          float: left;
+          @include svg-icon('icons/call.svg', 30, 30, $RED, '444');
+          margin: ($row-height / 2) ($row-height / 2) ($row-height / 2) (($row-height / 2) * 1.5);
+        }
+
+        a.phone-number-primary,
+        a.phone-number-mobile {
+          font-size: 36px;
+          color: $primary;
+          font-family: $number-font;
+          font-weight: bold;
+          padding-top: 0;
+
+          // Add spaces after the 4th and 7th digit.
+          span:nth-child(5),
+          span:nth-child(9) {
+            margin-right: 5px !important;
+          }
+        }
+
+        .text {
+          display: block;
+          color: $TUNA;
+          font-family: $arial;
+          @include adjust-font-size-to(12px, 0.9);
+          font-weight: normal;
+          padding-bottom: 8px;
+        }
+      }
+    }
+
+    .top-award-logos {
+      margin-bottom: $row-height;
+      text-align: center;
+
+      .top-award-logo {
+        display: inline-block;
+        padding: 0 10px;
+        vertical-align: top;
+
+        img {
+          width: auto;
+          height: 100px;
+        }
+
+        &.winner-british-travel-awards-2016 {
+          //width: 102px;
+        }
+
+        &.number-1-to-australia {
+          //width: 127px;
+
+          h3 {
+            margin: 0;
+
+            .number-1-to-australia-strapline {
+              display: none;
+            }
+          }
+        }
+
+        &.good-housekeeping-reader-recommended {
+          //width: 120px;
+        }
+      }
+    }
+
+    .footer-links {
+      margin-top: ($row-height * 1.5);
+      margin-bottom: ($row-height / 2);
+
+      .footer-links-list {
+        margin-bottom: ($row-height / 2);
+
+        &.footer-links-list-1 {
+
+        }
+
+        &.footer-links-list-2 {
+
+        }
+
+        &.footer-links-list-3 {
+
+        }
+
+        &.footer-links-list-4 {
+          // On mobile and tablet, make sure the fourth footer menu wraps cleanly
+          // under the three preceding elephants.
+          clear: both;
+        }
+
+        &.footer-links-list-5 {
+
+        }
+
+        h4 {
+          font-family: $gillsans-bold;
+          margin: 0 0 ($row-height / 4) 0;
+          font-size: 14px;
+        }
+
+        ul {
+          margin: ($row-height / 4) 0;
+          padding-left: 0;
+          font-family: $gillsans;
+
+          li {
+            font-size: 13px;
+            line-height: 1.25rem;
+            list-style: none;
+            margin: 0;
+          }
+        }
+      }
+    }
+
+    .newsletter-signup-title {
+      h4 {
+        margin-bottom: ($row-height / 2);
+
+        span#newsletter-signup-messages {
+          font-size: 13px;
+          color: $RED;
+          display: inline-block;
+          padding-left: ($site-gutter-width / 2);
+
+          &.inactive {
+            display: none;
+          }
+        }
+      }
+    }
+
+    .newsletter-signup-form {
+      margin-bottom: $row-height;
+
+      form {
+        // Reset the FCUK styles.
+        .form-item input {
+          line-height: inherit;
+          height: initial;
+          width: auto;
+          border: $WHITE 2px solid;
+          margin: 0;
+          text-decoration: none;
+          min-height: initial;
+          -moz-border-radius: 0;
+          -webkit-border-radius: 0;
+          border-radius: 0;
+          -moz-box-shadow: none;
+          -webkit-box-shadow: none;
+          box-shadow: none;
+          text-shadow: initial;
+
+          // Actual styles, rather than just resets.
+          display: block;
+          padding: 4px 8px;
+          background: $WHITE none;
+          font-size: 13px;
+          //color: $WHITE;
+          //font-family: $gillsans;
+          font-weight: normal;
+        }
+
+        .form-submit,
+        input[type=submit] {
+          display: block;
+          padding: 6px 10px;
+          background: $DENIM none;
+          font-size: 20px;
+          color: $WHITE;
+          font-family: $gillsans;
+          font-weight: normal;
+        }
+
+        .form-item,
+        input.form-submit {
+          margin-bottom: ($row-height / 4);
+        }
+
+        .form-item input {
+          width: 100%;
+        }
+
+        input {
+          background-color: $WHITE;
+          color: $SHIP_GRAY;
+        }
+
+        // Align the submit button to the bottom.
+        input.form-submit {
+          vertical-align: top;
+        }
+
+        // Hide errors.
+        .form-item {
+          label.ok,
+          label.error {
+            display: none;
+          }
+        }
+
+        ::-webkit-input-placeholder { /* WebKit, Blink, Edge */
+          color: $SILVER_CHALICE;
+        }
+        :-moz-placeholder { /* Mozilla Firefox 4 to 18 */
+          color: $SILVER_CHALICE;
+          opacity: 1;
+        }
+        ::-moz-placeholder { /* Mozilla Firefox 19+ */
+          color: $SILVER_CHALICE;
+          opacity: 1;
+        }
+        :-ms-input-placeholder { /* Internet Explorer 10-11 */
+          color: $SILVER_CHALICE;
+        }
+
+        &.has-errors {
+          .form-item input {
+            border-color: $RED;
+          }
+        }
+      }
+
+      // The confirmation/failure messages.
+      .confirmation-message {
+        font-size: 16px;
+
+        .red {
+          display: inline-block;
+          color: $RED;
+          background-color: $WHITE;
+        }
+      }
+
+      // The legalese bit.
+      p.terms-and-conditions {
+        margin: ($row-height / 4) 0;
+
+        a {
+          color: $TEAL;
+        }
+      }
+    }
+
+    .social-links {
+      text-align: center;
+      margin-top: $row-height;
+      margin-bottom: $row-height;
+
+      ul {
+        list-style: none;
+        display: inline-block;
+        margin: 0;
+        padding: 0;
+
+        li {
+          float: left;
+          margin: 0 ($site-gutter-width / 2);
+          padding: 0;
+          width: 36px;
+          height: 36px;
+
+          // Don't add margin to first or last <li>s.
+          &:first-child {
+            margin-left: 0;
+          }
+
+          &:last-child {
+            margin-right: 0;
+          }
+
+          &.twitter {
+
+          }
+
+          &.facebook {
+
+          }
+
+          &.instagram {
+
+          }
+        }
+      }
+    }
+  }
+
+  .footer-bottom-section {
+    padding-bottom: ($row-height * 3);
+
+    .bottom-award-logos {
+      margin: $row-height 0 ($row-height / 4) 0;
+      text-align: center;
+
+      .bottom-award-logo {
+        padding: 0 10px;
+        height: 60px;
+        display: inline-block;
+        margin-bottom: $row-height;
+
+        img {
+          width: auto;
+          height: 60px;
+
+          // Top-align images so they don't cause the logos which are
+          // background SVGs to be pushed down to the bottom.
+          vertical-align: top;
+        }
+
+        &.logo-in-css {
+          text-indent: -10000px;
+          background: no-repeat center center;
+        }
+
+        &.travelife-award {
+
+        }
+
+        &.sunday-times-best-to-work-for {
+
+        }
+
+        &.iata-accredited {
+
+        }
+
+        &.winner-british-travel-awards-2016 {
+
+        }
+
+        &.abta {
+
+        }
+
+        &.atol-protected {
+
+        }
+      }
+    }
+
+    .copyright-company-number-phone-info {
+      margin: ($row-height / 2) 0;
+
+      p {
+        margin: ($row-height / 4) 0;
+      }
+
+      .copyright-company-number {
+
+      }
+
+      .phone-info {
+
+      }
+    }
+  }
+
+  // Variant-specific styles - variant-a has a light grey top half with black
+  // logos and text, and a dark grey bottom with white logos and text.
+  &.variant-a {
+    .footer-top-section {
+      background-color: $footer-top-half-bg-colour-variant-a;
+
+      &,
+      & a {
+        color: $footer-top-half-colour-variant-a;
+      }
+
+      .top-award-logos {
+        .top-award-logo {
+
+          &.winner-british-travel-awards-2016 {
+
+          }
+
+          &.number-1-to-australia {
+
+          }
+
+          &.good-housekeeping-reader-recommended {
+
+          }
+        }
+      }
+    }
+    .footer-bottom-section {
+      background-color: $footer-bottom-half-bg-colour-variant-a;
+
+      &,
+      & a {
+        color: $footer-bottom-half-colour-variant-a;
+      }
+
+      .bottom-award-logos {
+        .bottom-award-logo {
+          img {
+          }
+
+          &.travelife-award {
+          }
+
+          &.sunday-times-best-to-work-for {
+          }
+
+          &.iata-accredited {
+          }
+
+          &.winner-british-travel-awards-2016 {
+          }
+
+          &.abta {
+          }
+
+          &.atol-protected {
+          }
+        }
+      }
+    }
+  }
+
+  &.gru {
+    .footer-top-section {
+      .need-more-help-contact-an-expert {
+        .ctabutton-wrapper {
+          .ctabutton-button-wrapper {
+            button.ctabutton {
+              .consultant-image {
+                // Note that the top position will depend on the image height;
+                // if you change the image, please make sure you check this
+                // value.
+                top: -90px;
+                background-image: url('../images/gru-industries-consultant.png');
+                background-size: 150px 152px;
+                width: 150px;
+                height: 152px;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // variant-b has a dark grey top half with white logos and text, and a light
+  // grey bottom with black logos and text.
+  &.variant-b {
+    .footer-top-section {
+      background-color: $footer-top-half-bg-colour-variant-b;
+
+      &,
+      & a,
+      .need-more-help-contact-an-expert h2.need-more-help-title {
+        color: $footer-top-half-colour-variant-b;
+      }
+
+      .top-award-logos {
+        .top-award-logo {
+
+          &.winner-british-travel-awards-2016 {
+
+          }
+
+          &.number-1-to-australia {
+
+          }
+
+          &.good-housekeeping-reader-recommended {
+
+          }
+        }
+      }
+    }
+    .footer-bottom-section {
+      background-color: $footer-bottom-half-bg-colour-variant-b;
+
+      &,
+      & a {
+        color: $footer-bottom-half-colour-variant-b;
+      }
+
+      .bottom-award-logos {
+        .bottom-award-logo {
+          img {
+          }
+
+          &.travelife-award {
+          }
+
+          &.sunday-times-best-to-work-for {
+          }
+
+          &.iata-accredited {
+          }
+
+          &.winner-british-travel-awards-2016 {
+          }
+
+          &.abta {
+          }
+
+          &.atol-protected {
+          }
+        }
+      }
+    }
+  }
+}
+
+// Test page-specific styles.
+.fcl-fcuk-footer-2017-test-page-element {
+  background-color: $WHITE;
+}
+
+// Viewport-specific bits and bobs.
+@media only screen and (min-width: $mobile-breakpoint-lower) and (max-width: $mobile-breakpoint-upper) {
+  footer#footer {
+    // Selectively show/hide elements at mobile breakpoints.
+    .mobile-show {
+      display: initial;
+    }
+
+    .mobile-hide {
+      display: none;
+    }
+
+    // Override containers so they stay at 90% width, rather than being fixed
+    // to 480px.
+    .footer-top-section .container {
+      width: 95%;
+    }
+
+    .footer-bottom-section .container {
+      width: 98%;
+    }
+  }
+}
+
+@media only screen and (min-width: $tablet-breakpoint-lower) and (max-width: $tablet-breakpoint-upper) {
+  footer#footer {
+    // Selectively show/hide elements at mobile breakpoints.
+    .tablet-show {
+      display: initial;
+    }
+
+    .tablet-hide {
+      display: none;
+    }
+
+    // Override containers so they stay at 90% width, rather than being fixed
+    // to 480px.
+    .footer-top-section .container {
+      width: 90%;
+    }
+
+    .footer-bottom-section .container {
+      width: 98%;
+    }
+  }
+}
+
+@media only screen and (min-width: $desktop-breakpoint-lower) and (max-width: $desktop-breakpoint-upper) {
+  footer#footer {
+    // Selectively show/hide elements at mobile breakpoints.
+    .desktop-show {
+      display: initial;
+    }
+
+    .desktop-hide {
+      display: none;
+    }
+  }
+}
+
+// Tablet-and-upwards styles.
+@media only screen and (min-width: $tablet-breakpoint-lower) {
+  footer#footer {
+    .footer-top-section {
+      .newsletter-signup-form {
+        form {
+          .form-submit,
+          input[type=submit],
+          .form-item,
+          input.form-submit {
+            display: inline-block;
+          }
+
+          .form-item-name,
+          .form-item-email {
+            width: 36.9%;
+            padding-right: 10px;
+          }
+
+          input.form-submit,
+          input[type=submit] {
+            width: 24.9%;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Desktop-specific styles.
+@media only screen and (min-width: $desktop-breakpoint-lower) {
+  footer#footer {
+    .footer-top-section {
+      .top-award-logos {
+      }
+
+      .need-more-help-contact-an-expert {
+        // Show the desktop phone number on desktop viewports.
+        .pane-phone {
+          div.phone-number-mobile-label,
+          a.phone-number-mobile,
+          a.tel-tag,
+          div.mobile {
+            display: none;
+          }
+
+          div.phone-number-primary-label,
+          a.phone-number-primary,
+          .phone-number {
+            display: block;
+          }
+        }
+      }
+
+      .newsletter-signup-form {
+        form {
+          .form-item,
+          input.form-submit {
+            margin-bottom: 0;
+          }
+        }
+      }
+
+      .footer-links {
+        .footer-links-list {
+          float: left;
+          width: 19.999%;
+
+          &.footer-links-list-4 {
+            // On desktop, don't clear the fourth footer menu.
+            clear: none;
+          }
+        }
+      }
+
+      .social-links {
+        margin-top: ($row-height * 1.833);
+      }
+    }
+
+    .footer-bottom-section {
+      // Display footer logos as table cells so they expand to fill the
+      // available width in a nice, automagic manner.
+      .bottom-award-logos {
+        display: table;
+
+        .bottom-award-logos-inner {
+          display: table-row;
+
+          .bottom-award-logo {
+            display: table-cell;
+          }
+        }
+      }
+    }
+  }
+}

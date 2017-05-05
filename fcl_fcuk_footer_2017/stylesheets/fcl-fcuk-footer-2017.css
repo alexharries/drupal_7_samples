@@ -1,0 +1,609 @@
+/*
+
+Sample HTML for the footer which this file styles:
+
+<footer id="footer" class="variant-a"> (or variant-b)
+  <div class="container footer-top-section">
+    <!-- First row - "need more help?" and award logos. -->
+    <div class="row">
+      <div class="col-md-6 need-more-help-contact-an-expert">
+        <h2><?php print t('Need more help?'); ?></h2>
+        <p>[todo: contact an expert]</p>
+      </div>
+
+      <div class="col-md-5 offset-md-1 top-award-logos">
+        <div class="row">
+          <div class="col-md-4 winner-british-travel-awards-2016">
+            <?php print t('Winner - British Travel Awards 2016 - Best Regional Travel Agency'); ?>
+          </div>
+
+          <div class="col-md-4 number-1-to-australia">
+            <?php print t('Number One to Australia'); ?>
+          </div>
+
+          <div class="col-md-4 good-housekeeping-reader-recommended">
+            <?php print t('Good Housekeeping Reader Recommended 2016'); ?>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Second row - quick links menus, 5 columns. -->
+    <div class="row">
+      <div class="footer-links">
+        <div class="footer-links-list footer-links-list-1">
+          <h4><?php print t('Quick Links'); ?></h4>
+          <ul>
+            <li>[todo: links list - quick links]</li>
+          </ul>
+        </div>
+
+        <div class="footer-links-list footer-links-list-2">
+          <h4><?php print t('Flights'); ?></h4>
+          <ul>
+            <li>[todo: links list - flights]</li>
+          </ul>
+        </div>
+
+        <div class="footer-links-list footer-links-list-3">
+          <h4><?php print t('Holidays'); ?></h4>
+          <ul>
+            <li>[todo: links list - holidays]</li>
+          </ul>
+        </div>
+
+        <div class="footer-links-list footer-links-list-4">
+          <h4><?php print t('About Flight Centre'); ?></h4>
+          <ul>
+            <li>[todo: links list - about flight centre]</li>
+          </ul>
+        </div>
+
+        <div class="footer-links-list footer-links-list-5">
+          <h4><?php print t('Contact us'); ?></h4>
+          <ul>
+            <li>[todo: links list - contact us]</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Third row - newsletter subscription and social links. -->
+    <div class="row">
+      <div class="col-md-7 newsletter-signup">
+        <h4><?php print t('Be the first to get our great deals:'); ?></h4>
+        <p>[todo: newsletter signup static form]</p>
+      </div>
+
+      <div class="col-md-2 offset-md-3 social-links">
+        <ul>
+          <li class="twitter">
+            <?php print l(t('@twitter_username on Twitter', ['@twitter_username' => '@flightcentreUK']), 'http://twitter.com/flightcentreUK'); ?>
+          </li>
+
+          <li class="facebook">
+            <?php print l(t('/@facebook_pagename on Facebook', ['@facebook_pagename' => 'FlightCentreUK']), 'https://www.facebook.com/FlightCentreUK'); ?>
+          </li>
+
+          <li class="instagram">
+            <?php print l(t('@instagram_username on Instagram', ['@instagram_username' => 'flightcentreuk']), 'https://instagram.com/flightcentreuk'); ?>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="container footer-bottom-section">
+    <!-- First row - more award logos and accreditations. -->
+    <div class="row bottom-award-logos">
+      <div class="col-md-2 travelife-award">
+        <?php print t('Travelife - Sustainability In Action - Tour Operators and Travel Agents'); ?>
+      </div>
+
+      <div class="col-md-2 sunday-times-best-to-work-for">
+        <?php print t('The Sunday Times - 100 Best Companies To Work For'); ?>
+      </div>
+
+      <div class="col-md-2 iata-accredited">
+        <?php print t('IATA Accredited Travel Agent'); ?>
+      </div>
+
+      <div class="col-md-2 winner-british-travel-awards-2016">
+          <?php print t('Winner - British Travel Awards 2016 - Best Regional Travel Agency'); ?>
+        </div>
+
+      <div class="col-md-2 abta">
+        <?php print t('ABTA - Travel With Confidence'); ?>
+      </div>
+
+      <div class="col-md-2 atol-protected">
+        <?php print t('ATOL Protected'); ?>
+      </div>
+    </div>
+
+    <!-- Second row - Copyright, company number, and phone calls information. -->
+    <div class="row copyright-phone-info">
+      <p class="copyright-company-number">
+        <?php print t('&copy; @year Flight Centre (UK) Limited, Registered in England No. 02937210', ['@year' => date('Y')]); ?>
+      </p>
+
+      <p class="phone-info">
+        <?php print t('<superscript>*</superscript> 0800 calls are free for landlines and mobiles. 0333 calls are included within inclusive minutes package on mobiles, otherwise standard rates apply. 0844/0845 calls are 7p/pm plus your local carrier charge.'); ?>
+      </p>
+    </div>
+  </div>
+</footer>
+
+ */
+footer#footer {
+  margin: 6rem 0 0 0;
+  clear: both;
+  font-size: 0.75rem;
+}
+footer#footer .mobile-show,
+footer#footer .tablet-show,
+footer#footer .desktop-show {
+  display: none;
+}
+footer#footer .clearfix:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+footer#footer button.ctabutton,
+footer#footer .newsletter-signup-form .form-submit,
+footer#footer .newsletter-signup-form input[type=submit] {
+  line-height: inherit;
+  height: initial;
+  width: auto;
+  border: 0;
+  margin: 0;
+  text-decoration: none;
+  min-height: initial;
+  -moz-border-radius: 0;
+  -webkit-border-radius: 0;
+  border-radius: 0;
+  -moz-box-shadow: none;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+  text-shadow: initial;
+}
+footer#footer h2,
+footer#footer h3,
+footer#footer h4,
+footer#footer p,
+footer#footer ul,
+footer#footer li {
+  color: inherit;
+}
+footer#footer a:hover {
+  text-decoration: underline;
+}
+footer#footer .footer-top-section {
+  margin-bottom: 2px;
+  padding-top: 3rem;
+  padding-bottom: 1.5rem;
+}
+footer#footer .footer-top-section .need-more-help-contact-an-expert {
+  margin-bottom: 1.5rem;
+}
+footer#footer .footer-top-section .need-more-help-contact-an-expert h2.need-more-help-title {
+  font-family: "Gill Sans", "GillSans", "Cabin", Arial, Helvetica, sans-serif;
+  margin: 0 0 1.125rem 0;
+  color: #000000;
+}
+footer#footer .footer-top-section .need-more-help-contact-an-expert .ctabutton-wrapper {
+  position: relative;
+}
+footer#footer .footer-top-section .need-more-help-contact-an-expert .ctabutton-wrapper .ctabutton-button-wrapper button.ctabutton {
+  background-color: #EE0000;
+  color: #FFFFFF;
+  font-size: 20px;
+  font-family: "Gill Sans", "GillSans", "Cabin", Arial, Helvetica, sans-serif;
+  width: 100%;
+  padding: 0.75rem 0 0.75rem 100px;
+  text-align: left;
+}
+footer#footer .footer-top-section .need-more-help-contact-an-expert .ctabutton-wrapper .ctabutton-button-wrapper button.ctabutton .consultant-image {
+  content: "";
+  display: block;
+  position: absolute;
+  right: 10px;
+  top: -69px;
+  background-color: transparent;
+  background-image: url('../images/consultant-default.png');
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: 150px 152px;
+  width: 102px;
+  height: 117px;
+  z-index: auto;
+}
+@media only screen and (-webkit-min-device-pixel-ratio: 2), only screen and (-moz-min-device-pixel-ratio: 2), only screen and (-o-min-device-pixel-ratio: 2 / 1), only screen and (min-device-pixel-ratio: 2), only screen and (min-resolution: 192dpi), only screen and (min-resolution: 2dppx) {
+  footer#footer .footer-top-section .need-more-help-contact-an-expert .ctabutton-wrapper .ctabutton-button-wrapper button.ctabutton .consultant-image {
+    background-image: url('../images/consultant-default-@2x.png');
+    -moz-background-size: 102px 117px;
+    -o-background-size: 102px 117px;
+    -webkit-background-size: 102px 117px;
+    background-size: 102px 117px;
+  }
+}
+footer#footer .footer-top-section .need-more-help-contact-an-expert .ctabutton-wrapper .ctabutton-cta-wrapper {
+  display: none;
+}
+footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone {
+  height: auto;
+  color: inherit;
+  background-color: inherit;
+  padding: 12px 0 0 0;
+}
+footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone .phone-number-label {
+  padding: 0 0 0.375rem 0;
+}
+footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone div.phone-number-mobile-label,
+footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone a.phone-number-mobile,
+footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone a.tel-tag,
+footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone div.mobile {
+  display: block;
+}
+footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone div.phone-number-primary-label,
+footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone a.phone-number-primary,
+footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone .phone-number {
+  display: none;
+}
+footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone:before {
+  content: '';
+  float: left;
+  background: url("data:image/svg+xml;charset=utf8,%3C?xml version='1.0' encoding='utf-8'?%3E %3C!-- Generated by IcoMoon.io --%3E %3C!DOCTYPE svg PUBLIC '-//W3C//DTD SVG 1.1//EN' 'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd'%3E %3Csvg  fill='%23EE0000' width='30' height='30' version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 32 32'%3E %3Cpath fill='%23EE0000' d='M7.172 20.413c1.379 2.543 3.192 4.95 5.468 6.76 0.639 0.514 1.322 0.973 2.035 1.377 2.512 1.425 5.42 1.611 8.175 0.881 0.709-0.188 1.463-0.488 2.046-0.95 0.846-0.676 2.126-1.663 2.078-2.098 0.001-0.045 0.003-0.084 0.003-0.113 0.003-0.572-0.374-0.826-1.011-1.365-1.192-1.029-2.155-2.127-3.219-3.001-0.611-0.535-1.009-1.12-1.413-1.163-0.051-0.010-0.105-0.014-0.162-0.014-0.782-0.052-1.564 0.823-2.039 1.345-0.536 0.585-0.848 1.535-1.774 1.535-0.924-0.008-1.875-0.544-2.396-0.77-2.809-1.313-4.785-4.933-4.958-7.979-0.005-0.079-0.005-0.149-0.005-0.216 0-1.014 0.265-1.976 0.725-2.877 0.303-0.592 0.84-0.357 1.365-0.472 0.906-0.204 2.22-0.293 2.764-1.169 0.408-0.653-0.34-2.905-0.527-3.863-0.16-0.818-0.399-1.617-0.566-2.433-0.108-0.53-0.098-1.28-0.652-1.567-0.643-0.331-1.751 0.181-2.345 0.441-2.636 1.147-4.752 3.521-5.407 6.337-0.45 1.953-0.407 3.999-0.096 5.973 0.298 1.905 0.994 3.713 1.912 5.404z'%3E%3C/path%3E %3C/svg%3E ") no-repeat center center;
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  -webkit-background-size: cover;
+  background-size: cover;
+  margin: 0.75rem 0.75rem 0.75rem 1.125rem;
+}
+footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone a.phone-number-primary,
+footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone a.phone-number-mobile {
+  font-size: 36px;
+  color: #EE0000;
+  font-family: "Gill Sans Numbers", "GillSans-Numbers", "Gill Sans Extra Bold", "Gill Sans Bold", "Cabin", Arial, Helvetica, sans-serif;
+  font-weight: bold;
+  padding-top: 0;
+}
+footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone a.phone-number-primary span:nth-child(5),
+footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone a.phone-number-primary span:nth-child(9),
+footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone a.phone-number-mobile span:nth-child(5),
+footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone a.phone-number-mobile span:nth-child(9) {
+  margin-right: 5px !important;
+}
+footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone .text {
+  display: block;
+  color: #383A40;
+  font-family: Arial, Helvetica, "Nimbus Sans L", sans-serif;
+  font-size: 0.75em;
+  line-height: 1.8em;
+  font-weight: normal;
+  padding-bottom: 8px;
+}
+footer#footer .footer-top-section .top-award-logos {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+footer#footer .footer-top-section .top-award-logos .top-award-logo {
+  display: inline-block;
+  padding: 0 10px;
+  vertical-align: top;
+}
+footer#footer .footer-top-section .top-award-logos .top-award-logo img {
+  width: auto;
+  height: 100px;
+}
+footer#footer .footer-top-section .top-award-logos .top-award-logo.number-1-to-australia h3 {
+  margin: 0;
+}
+footer#footer .footer-top-section .top-award-logos .top-award-logo.number-1-to-australia h3 .number-1-to-australia-strapline {
+  display: none;
+}
+footer#footer .footer-top-section .footer-links {
+  margin-top: 2.25rem;
+  margin-bottom: 0.75rem;
+}
+footer#footer .footer-top-section .footer-links .footer-links-list {
+  margin-bottom: 0.75rem;
+}
+footer#footer .footer-top-section .footer-links .footer-links-list.footer-links-list-4 {
+  clear: both;
+}
+footer#footer .footer-top-section .footer-links .footer-links-list h4 {
+  font-family: "Gill Sans Bold", "GillSans-Bold", "Cabin", Arial, Helvetica, sans-serif;
+  margin: 0 0 0.375rem 0;
+  font-size: 14px;
+}
+footer#footer .footer-top-section .footer-links .footer-links-list ul {
+  margin: 0.375rem 0;
+  padding-left: 0;
+  font-family: "Gill Sans", "GillSans", "Cabin", Arial, Helvetica, sans-serif;
+}
+footer#footer .footer-top-section .footer-links .footer-links-list ul li {
+  font-size: 13px;
+  line-height: 1.25rem;
+  list-style: none;
+  margin: 0;
+}
+footer#footer .footer-top-section .newsletter-signup-title h4 {
+  margin-bottom: 0.75rem;
+}
+footer#footer .footer-top-section .newsletter-signup-title h4 span#newsletter-signup-messages {
+  font-size: 13px;
+  color: #EE0000;
+  display: inline-block;
+  padding-left: 5px;
+}
+footer#footer .footer-top-section .newsletter-signup-title h4 span#newsletter-signup-messages.inactive {
+  display: none;
+}
+footer#footer .footer-top-section .newsletter-signup-form {
+  margin-bottom: 1.5rem;
+}
+footer#footer .footer-top-section .newsletter-signup-form form .form-item input {
+  line-height: inherit;
+  height: initial;
+  width: auto;
+  border: #FFFFFF 2px solid;
+  margin: 0;
+  text-decoration: none;
+  min-height: initial;
+  -moz-border-radius: 0;
+  -webkit-border-radius: 0;
+  border-radius: 0;
+  -moz-box-shadow: none;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+  text-shadow: initial;
+  display: block;
+  padding: 4px 8px;
+  background: #FFFFFF none;
+  font-size: 13px;
+  font-weight: normal;
+}
+footer#footer .footer-top-section .newsletter-signup-form form .form-submit,
+footer#footer .footer-top-section .newsletter-signup-form form input[type=submit] {
+  display: block;
+  padding: 6px 10px;
+  background: #116AB2 none;
+  font-size: 20px;
+  color: #FFFFFF;
+  font-family: "Gill Sans", "GillSans", "Cabin", Arial, Helvetica, sans-serif;
+  font-weight: normal;
+}
+footer#footer .footer-top-section .newsletter-signup-form form .form-item,
+footer#footer .footer-top-section .newsletter-signup-form form input.form-submit {
+  margin-bottom: 0.375rem;
+}
+footer#footer .footer-top-section .newsletter-signup-form form .form-item input {
+  width: 100%;
+}
+footer#footer .footer-top-section .newsletter-signup-form form input {
+  background-color: #FFFFFF;
+  color: #424248;
+}
+footer#footer .footer-top-section .newsletter-signup-form form input.form-submit {
+  vertical-align: top;
+}
+footer#footer .footer-top-section .newsletter-signup-form form .form-item label.ok,
+footer#footer .footer-top-section .newsletter-signup-form form .form-item label.error {
+  display: none;
+}
+footer#footer .footer-top-section .newsletter-signup-form form ::-webkit-input-placeholder {
+  /* WebKit, Blink, Edge */
+  color: #AAAAAA;
+}
+footer#footer .footer-top-section .newsletter-signup-form form :-moz-placeholder {
+  /* Mozilla Firefox 4 to 18 */
+  color: #AAAAAA;
+  opacity: 1;
+}
+footer#footer .footer-top-section .newsletter-signup-form form ::-moz-placeholder {
+  /* Mozilla Firefox 19+ */
+  color: #AAAAAA;
+  opacity: 1;
+}
+footer#footer .footer-top-section .newsletter-signup-form form :-ms-input-placeholder {
+  /* Internet Explorer 10-11 */
+  color: #AAAAAA;
+}
+footer#footer .footer-top-section .newsletter-signup-form form.has-errors .form-item input {
+  border-color: #EE0000;
+}
+footer#footer .footer-top-section .newsletter-signup-form .confirmation-message {
+  font-size: 16px;
+}
+footer#footer .footer-top-section .newsletter-signup-form .confirmation-message .red {
+  display: inline-block;
+  color: #EE0000;
+  background-color: #FFFFFF;
+}
+footer#footer .footer-top-section .newsletter-signup-form p.terms-and-conditions {
+  margin: 0.375rem 0;
+}
+footer#footer .footer-top-section .newsletter-signup-form p.terms-and-conditions a {
+  color: #007E7A;
+}
+footer#footer .footer-top-section .social-links {
+  text-align: center;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+footer#footer .footer-top-section .social-links ul {
+  list-style: none;
+  display: inline-block;
+  margin: 0;
+  padding: 0;
+}
+footer#footer .footer-top-section .social-links ul li {
+  float: left;
+  margin: 0 5px;
+  padding: 0;
+  width: 36px;
+  height: 36px;
+}
+footer#footer .footer-top-section .social-links ul li:first-child {
+  margin-left: 0;
+}
+footer#footer .footer-top-section .social-links ul li:last-child {
+  margin-right: 0;
+}
+footer#footer .footer-bottom-section {
+  padding-bottom: 4.5rem;
+}
+footer#footer .footer-bottom-section .bottom-award-logos {
+  margin: 1.5rem 0 0.375rem 0;
+  text-align: center;
+}
+footer#footer .footer-bottom-section .bottom-award-logos .bottom-award-logo {
+  padding: 0 10px;
+  height: 60px;
+  display: inline-block;
+  margin-bottom: 1.5rem;
+}
+footer#footer .footer-bottom-section .bottom-award-logos .bottom-award-logo img {
+  width: auto;
+  height: 60px;
+  vertical-align: top;
+}
+footer#footer .footer-bottom-section .bottom-award-logos .bottom-award-logo.logo-in-css {
+  text-indent: -10000px;
+  background: no-repeat center center;
+}
+footer#footer .footer-bottom-section .copyright-company-number-phone-info {
+  margin: 0.75rem 0;
+}
+footer#footer .footer-bottom-section .copyright-company-number-phone-info p {
+  margin: 0.375rem 0;
+}
+footer#footer.variant-a .footer-top-section {
+  background-color: #dbdbdb;
+}
+footer#footer.variant-a .footer-top-section, footer#footer.variant-a .footer-top-section a {
+  color: #383a40;
+}
+footer#footer.variant-a .footer-bottom-section {
+  background-color: #424248;
+}
+footer#footer.variant-a .footer-bottom-section, footer#footer.variant-a .footer-bottom-section a {
+  color: #FFFFFF;
+}
+footer#footer.gru .footer-top-section .need-more-help-contact-an-expert .ctabutton-wrapper .ctabutton-button-wrapper button.ctabutton .consultant-image {
+  top: -90px;
+  background-image: url("../images/gru-industries-consultant.png");
+  background-size: 150px 152px;
+  width: 150px;
+  height: 152px;
+}
+footer#footer.variant-b .footer-top-section {
+  background-color: #424248;
+}
+footer#footer.variant-b .footer-top-section, footer#footer.variant-b .footer-top-section a,
+footer#footer.variant-b .footer-top-section .need-more-help-contact-an-expert h2.need-more-help-title {
+  color: #FFFFFF;
+}
+footer#footer.variant-b .footer-bottom-section {
+  background-color: #dbdbdb;
+}
+footer#footer.variant-b .footer-bottom-section, footer#footer.variant-b .footer-bottom-section a {
+  color: #383a40;
+}
+
+.fcl-fcuk-footer-2017-test-page-element {
+  background-color: #FFFFFF;
+}
+
+@media only screen and (min-width: 0px) and (max-width: 530px) {
+  footer#footer .mobile-show {
+    display: initial;
+  }
+  footer#footer .mobile-hide {
+    display: none;
+  }
+  footer#footer .footer-top-section .container {
+    width: 95%;
+  }
+  footer#footer .footer-bottom-section .container {
+    width: 98%;
+  }
+}
+@media only screen and (min-width: 530px) and (max-width: 1000px) {
+  footer#footer .tablet-show {
+    display: initial;
+  }
+  footer#footer .tablet-hide {
+    display: none;
+  }
+  footer#footer .footer-top-section .container {
+    width: 90%;
+  }
+  footer#footer .footer-bottom-section .container {
+    width: 98%;
+  }
+}
+@media only screen and (min-width: 1000px) and (max-width: 99999px) {
+  footer#footer .desktop-show {
+    display: initial;
+  }
+  footer#footer .desktop-hide {
+    display: none;
+  }
+}
+@media only screen and (min-width: 530px) {
+  footer#footer .footer-top-section .newsletter-signup-form form .form-submit,
+  footer#footer .footer-top-section .newsletter-signup-form form input[type=submit],
+  footer#footer .footer-top-section .newsletter-signup-form form .form-item,
+  footer#footer .footer-top-section .newsletter-signup-form form input.form-submit {
+    display: inline-block;
+  }
+  footer#footer .footer-top-section .newsletter-signup-form form .form-item-name,
+  footer#footer .footer-top-section .newsletter-signup-form form .form-item-email {
+    width: 36.9%;
+    padding-right: 10px;
+  }
+  footer#footer .footer-top-section .newsletter-signup-form form input.form-submit,
+  footer#footer .footer-top-section .newsletter-signup-form form input[type=submit] {
+    width: 24.9%;
+  }
+}
+@media only screen and (min-width: 1000px) {
+  footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone div.phone-number-mobile-label,
+  footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone a.phone-number-mobile,
+  footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone a.tel-tag,
+  footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone div.mobile {
+    display: none;
+  }
+  footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone div.phone-number-primary-label,
+  footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone a.phone-number-primary,
+  footer#footer .footer-top-section .need-more-help-contact-an-expert .pane-phone .phone-number {
+    display: block;
+  }
+  footer#footer .footer-top-section .newsletter-signup-form form .form-item,
+  footer#footer .footer-top-section .newsletter-signup-form form input.form-submit {
+    margin-bottom: 0;
+  }
+  footer#footer .footer-top-section .footer-links .footer-links-list {
+    float: left;
+    width: 19.999%;
+  }
+  footer#footer .footer-top-section .footer-links .footer-links-list.footer-links-list-4 {
+    clear: none;
+  }
+  footer#footer .footer-top-section .social-links {
+    margin-top: 2.7495rem;
+  }
+  footer#footer .footer-bottom-section .bottom-award-logos {
+    display: table;
+  }
+  footer#footer .footer-bottom-section .bottom-award-logos .bottom-award-logos-inner {
+    display: table-row;
+  }
+  footer#footer .footer-bottom-section .bottom-award-logos .bottom-award-logos-inner .bottom-award-logo {
+    display: table-cell;
+  }
+}

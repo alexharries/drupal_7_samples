@@ -1,0 +1,113 @@
+/**
+ @file
+
+ This file contains a sample of the SASS code which you can use to style
+ Holiday Search Tiles in your theme.
+
+ The structure is approximately as follows:
+
+  <div class="paragraphs-item paragraphs-item--holiday-search-tiles">
+    <div class="row">
+      <div class="container">
+        <div class="holiday-search-tiles">
+          <div class="paragraphs-item--holiday-search-tiles--holiday-search-tile">
+            <a href="/link-to-holiday" class="holiday-tile">
+              <!-- If the holiday has an image, the following line is used: -->
+              <div class="image"><img src="/holiday-image.jpg" /></div>
+
+              <!-- If there is no image, the following line is used: -->
+              <div class="no-image"></div>
+
+              <div class="text">
+                <h3 class="place-name">Sometown</h3>
+                <p class="holiday-name">Trip Around Sometown</p>
+                <p class="product-tag">Tailor-made Journey</p>
+                <p class="days-from">11 days from</p>
+
+                <p class="price">
+                  <span class="price-prefix">£</span>
+                  <span class="price-numbers">1234.56</span>
+                  <span class="price-suffix">pp</span>
+                </p>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <div class="more-results-link">
+          <a href="/link-to-more-results">Link to more results</a>
+        </div>
+      </div>
+    </div>
+  </div>
+*/
+
+@import 'base';
+
+// The container around the entire holiday tiles paragraphs item.
+div.paragraphs-item--holiday-search-tiles {
+
+  // The container which holds all tiles for this paragraph.
+  div.holiday-search-tiles {
+
+    // An individual holiday tile.
+    div.paragraphs-item--holiday-search-tiles--holiday-search-tile {
+
+      // The link which wraps around a single holiday tile.
+      a.holiday-tile {
+
+        // The image container div and image tag.
+        div.image {
+          img {
+          }
+        }
+
+        // The element used when there is no image - e.g. for showing a generic
+        // image placeholder.
+        div.no-image {
+        }
+
+        // The place name heading.
+        h3.place-name {
+        }
+
+        // The name of the holiday.
+        p.holiday-name {
+        }
+
+        // The tag for the product, e.g. Tailor-made Journey.
+        p.product-tag {
+        }
+
+        // The number of days.
+        p.days-from {
+        }
+
+        // The container for the price of the holiday.
+        p.price {
+
+          // The price prefix.
+          span.price-prefix {
+          }
+
+          // The price currency amount, with decimals but without the currency
+          // symbol.
+          span.price-numbers {
+          }
+
+          // The price suffix; typically "pp" (per-person).
+          span.price-suffix {
+          }
+        }
+      }
+    }
+  }
+
+  // The "more results" link container and link tag.
+  div.more-results-link {
+    a {
+      // Set a colour so we know this CSS file has been included correctly.
+      color: greenyellow;
+    }
+  }
+}

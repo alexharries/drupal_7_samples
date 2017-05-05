@@ -1,0 +1,8 @@
+name = FCUK 2017 Footer
+description = Provides the footer for the FCUK sites.
+package = FCUK
+core = 7.x
+version = 7.x-1.0-20170403
+
+;files[] =
+dependencies[] = fcl_uk_utilities

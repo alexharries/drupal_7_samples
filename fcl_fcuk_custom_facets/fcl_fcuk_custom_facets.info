@@ -1,0 +1,8 @@
+name = FCL UK Custom Facets
+description = Provides custom facets mods for solr.
+package = FCL UK
+core = 7.x
+
+dependencies[] = facetapi
+dependencies[] = apachesolr
+dependencies[] = fcl_facets

@@ -1,0 +1,14 @@
+name = Communication Pod Paragraph
+description = Provides a paragraph which displays a Communication Pod of Awesomeness (TM).
+core = 7.x
+package = FCUK
+version = 7.x-1.0-20170420
+dependencies[] = fcl_fcuk_communication_pods
+dependencies[] = features
+dependencies[] = paragraphs
+dependencies[] = text
+features[features_api][] = api:2
+features[field_base][] = field_paragraphs_comm_pod
+features[field_instance][] = paragraphs_item-communication_pod-field_paragraphs_comm_pod
+features[paragraphs][] = communication_pod
+project path = profiles/uk/modules/features

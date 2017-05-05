@@ -1,0 +1,27 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the FCUK 2017 Footer install
+ * functions. module.
+ */
+
+/**
+ * Implements hook_install().
+ *
+ * Installs the menu and links for the footer.
+ */
+function fcl_fcuk_footer_2017_install() {
+  fcl_fcuk_footer_2017_install_menu_and_links();
+}
+
+/**
+ * Creates the menus and menu links for the footer block.
+ */
+function fcl_fcuk_footer_2017_install_menu_and_links() {
+  // Load the menu module and the menu include file.
+  module_load_include('inc', 'fcl_fcuk_footer_2017', 'fcl_fcuk_footer_2017.footer_menu');
+
+  fcl_fcuk_footer_2017_footer_menu_create();
+  fcl_fcuk_footer_2017_footer_menu_links_create();
+}

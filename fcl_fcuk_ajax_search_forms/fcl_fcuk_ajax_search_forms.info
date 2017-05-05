@@ -1,0 +1,9 @@
+name = FCL FCUK Ajax Search Forms
+description = Provides Ajax-updated search forms for FCUK.
+package = fcuk
+core = 7.x
+version = 7.x-1.0-20170328
+
+dependencies[] = fcl_utilities
+; We use fcl_fcuk_custom_facets to provide aliases information.
+dependencies[] = fcl_fcuk_custom_facets

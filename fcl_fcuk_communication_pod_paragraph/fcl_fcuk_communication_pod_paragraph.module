@@ -1,0 +1,257 @@
+<?php
+/**
+ * @file
+ * Code for the Communication Pod Paragraph feature.
+ */
+
+include_once 'fcl_fcuk_communication_pod_paragraph.features.inc';
+
+/**
+ * Custom code lives below this line.
+ */
+
+/**
+ * Implements hook_theme().
+ */
+function fcl_fcuk_communication_pod_paragraph_theme() {
+  $theme = [];
+
+  // Overrides the theme definition for the Communication Pod paragraph.
+  $theme['paragraphs_item__communication_pod'] = [
+    'render element' => 'elements',
+    'template' => 'fcl-fcuk-communication-pod-paragraph',
+    'path' => drupal_get_path('module', 'fcl_fcuk_communication_pod_paragraph') . '/templates',
+  ];
+
+  return $theme;
+}
+
+/**
+ * Implements hook_entity_view_alter().
+ */
+function fcl_fcuk_communication_pod_paragraph_entity_view_alter(&$build, $type) {
+  if (($type == 'paragraphs_item') && ($build['#bundle'] == 'communication_pod')) {
+    // Make sure $build['#attached'], ...['css'] and ...['js'] are arrays.
+    if (empty($build['#attached'])) {
+      $build['#attached'] = [];
+    }
+
+    $build['#attached'] += [
+      'css' => [],
+      'js' => [],
+    ];
+
+    // Add the module's CSS on pages where we're displaying a paragraph.
+    $build['#attached']['css'][] = drupal_get_path('module', 'fcl_fcuk_communication_pod_paragraph') . '/css/fcl-fcuk-communication-pod-paragraph.css';
+    $build['#attached']['js'][] = drupal_get_path('module', 'fcl_fcuk_communication_pod_paragraph') . '/js/fcl-fcuk-communication-pod-paragraph.js';
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK().
+ *
+ * @param array $variables
+ *   The variables array for the entity.
+ */
+function fcl_fcuk_communication_pod_paragraph_preprocess_entity(&$variables) {
+  if ($variables['entity_type'] == 'paragraphs_item') {
+    // If the paragraph type is communication_pod, preprocess it.
+    if ($variables['paragraphs_item']->bundle == 'communication_pod') {
+      // Get the configured communication pod and display it.
+      $language_code = $variables['paragraphs_item']->langcode();
+
+      $variables['communication_pod'] = fcl_fcuk_communication_pods_get_pod($variables['paragraphs_item']->field_paragraphs_comm_pod[$language_code][0]['safe_value']);
+    }
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter.
+ *
+ * Move the fcl_ribbons_communication_pod module to run last, mainly for
+ * form-altering goodness.
+ *
+ * @param $implementations
+ * @param $hook
+ */
+function fcl_fcuk_communication_pod_paragraph_module_implements_alter(&$implementations, $hook) {
+  if (($hook == 'form_alter') || ($hook == 'field_widget_form_alter')) {
+    // Move all hooks for this module to the end of the list.
+    // module_implements() iterates through $implementations with a foreach
+    // loop which PHP iterates in the order that the items were added, so to
+    // move an item to the end of the array, we remove it and then add it.
+    if (array_key_exists('fcl_fcuk_communication_pod_paragraph', $implementations)) {
+      $group = $implementations['fcl_fcuk_communication_pod_paragraph'];
+      unset($implementations['fcl_fcuk_communication_pod_paragraph']);
+      $implementations['fcl_fcuk_communication_pod_paragraph'] = $group;
+    }
+  }
+}
+
+/**
+ * Implements hook_field_widget_form_alter().
+ *
+ * @param $element
+ * @param $form_state
+ * @param $context
+ */
+function fcl_fcuk_communication_pod_paragraph_field_widget_form_alter(&$element, &$form_state, $context) {
+  // Is this the field_paragraphs_comm_pod field on the node edit form?
+  // Be careful to only fire this alteration when we're on a node edit form.
+  if (array_key_exists('#entity_type', $context['form'])
+    && ($context['form']['#entity_type'] == 'node')
+    && array_key_exists('#field_name', $element)
+    && ($element['#field_name'] == 'field_paragraphs_comm_pod')
+  ) {
+    // Yes. Convert this field to a drop-down select list of available
+    // communication pods.
+    $element['value']['#type'] = 'select';
+
+    // Get the available communication pods.
+    $element['value']['#options'] = [];
+    foreach (fcl_fcuk_communication_pods_list_enabled_pods() as $pod_machine_name => $pod_info) {
+      $element['value']['#options'][$pod_machine_name] = $pod_info['#pod_name'];
+    }
+
+    // Remove the #maxlength and #size attributes.
+    unset($element['value']['#maxlength']);
+    unset($element['value']['#size']);
+
+    // Unset the '#required' flag; otherwise, the form's validation function
+    // will throw an error because it tries to check for an empty string.
+    $element['value']['#required'] = FALSE;
+
+    // Set the #multiple key to FALSE.
+    $element['value']['#multiple'] = FALSE;
+
+    // Add a validation function which converts the checkboxes back into a
+    // string.
+    if (!array_key_exists('#element_validate', $element['value'])) {
+      $element['value']['#element_validate'] = [];
+    }
+    $element['value']['#element_validate'][] = 'fcl_fcuk_communication_pod_paragraph_field_communication_pods_element_validate';
+  }
+}
+
+/**
+ * Field validation callback which resets the paragraph field to a textfield.
+ *
+ * The difficulty here is that the value of the field is stored in a nested
+ * location within the $form_state['values'] array; in fact, there could
+ * theoretically be more than one instance of this value, since I could add
+ * two, three, ... n instances of a paragraph field with a holidays paragraph
+ * listing in it.
+ *
+ * So, for each instance where this validation function is called, we need to
+ * get the location of the field from the $element['#field_parents'] array,
+ * which contains data such as:
+ *
+ *  $element['#field_parents'] = array(
+ *    0 => 'field_parapg_paragraphs',   // i.e. the field which contains
+ *                                      // Paragraphs elements.
+ *
+ *    1 => 'und',                       // The language variant for this field;
+ *                                      // we can get this from
+ *                                      // $element['#language'] if needed.
+ *
+ *    2 => 9,                           // i.e. The 9th child element.
+ *  );
+ *
+ * Now, we know that the value we want to change is located at
+ * $form_state['values'][$element['#field_parents'][0]][$element['#field_parents'][1]][$element['#field_parents'][2]],
+ * but how to we programmatically get down to that value, and alter it, in a
+ * way that will persist when the function exits and passes $form_state back by
+ * reference?
+ *
+ * The solution we're going to use here is to create a recursive function into
+ * which we'll pass the $form_state array, or a child of that array, along with
+ * part or all of the #field_parents array, and the new value for the element.
+ *
+ * So, let's give this a go...
+ *
+ * @param array $element
+ * @param array $form_state
+ * @param array $form
+ */
+function fcl_fcuk_communication_pod_paragraph_field_communication_pods_element_validate($element, &$form_state, $form) {
+  // Reset our FAPI field back to its textfield settings.
+  $element['value']['#type'] = 'textfield';
+  $element['value']['#maxlength'] = 256;
+  $element['value']['#size'] = 60;
+  $element['value']['#default_value'] = '';
+  unset($element['value']['#options']);
+}
+
+/**
+ * Locates and changes a deeply-nested $form_state['values'] array element.
+ *
+ * This is a recursive function which drills down into a $form_state['values']
+ * array to find and change a nested field value. This function is called from
+ * an #element_validate function call.
+ *
+ * @param $form_state_values       array On first call, this is the entire
+ *                                 $form_state['values'] array; on subsequent
+ *                                 calls, this array contains a subset of the
+ *                                 values array.
+ *
+ * @param $element_field_parents   array An indexed array of the value's
+ *                                 parents.
+ *
+ * @param $element                 array The original $element as passed in to
+ *                                 the parent validation function.
+ *
+ * @param $function_call           string The name of the processing function
+ *                                 to call when the value element is found.
+ *                                 This function should accept the value array
+ *                                 and the parent $element as arguments - in
+ *                                 that order - and should return the new
+ *                                 value, which may be an array, string, etc.
+ *
+ * @return mixed
+ */
+function _fcl_fcuk_communication_pod_paragraph_field_communication_pods_element_validate($form_state_values, $element_field_parents, $element, $function_call) {
+  // If $element_field_parents is an array and contains exactly one element,
+  // then we are at the bottom level and can set the new value on the element;
+  // otherwise, we remove the first key/value pair off the front of the
+  // $element_field_parents array and use the value of the sliced key to pass
+  // a sub-array from $form_state_values back into this function.
+  if (count($element_field_parents) == 1) {
+    // We're at the bottom level; set
+    // $form_state_values[$element_field_parents[0]] = $new_value and return
+    // $form_state_values.
+    if (isset($form_state_values[$element_field_parents[0]],
+      $form_state_values[$element_field_parents[0]][$element['#field_name']])) {
+      $form_state_values[$element_field_parents[0]][$element['#field_name']] = call_user_func($function_call, $form_state_values[$element_field_parents[0]][$element['#field_name']], $element);
+    }
+    else {
+      // Show an error but don't prevent the form from saving; we might still
+      // be able to continue.
+      $message_text = '@function: Unable to locate the @element array key.';
+      $message_array = array(
+        '@function' => __FUNCTION__,
+        '@element' => $element_field_parents[0],
+      );
+      drupal_set_message(t($message_text, $message_array), 'warning');
+      watchdog('fcl_fcuk_communication_pod_paragraph', $message_text, $message_array, WATCHDOG_WARNING);
+    }
+  }
+  else {
+    $child_array_key = array_shift($element_field_parents);
+    if (array_key_exists($child_array_key, $form_state_values)) {
+      $form_state_values[$child_array_key] = _fcl_fcuk_communication_pod_paragraph_field_communication_pods_element_validate($form_state_values[$child_array_key], $element_field_parents, $element, $function_call);
+    }
+    else {
+      // Show an error but don't prevent the form from saving; we might still
+      // be able to continue.
+      $message_text = '@function: Unable to locate the @element array key.';
+      $message_array = array(
+        '@function' => __FUNCTION__,
+        '@element' => $child_array_key,
+      );
+      drupal_set_message(t($message_text, $message_array), 'warning');
+      watchdog('fcl_fcuk_communication_pod_paragraph', $message_text, $message_array, WATCHDOG_WARNING);
+    }
+  }
+  // Lastly, return the updated $form_state_values array.
+  return $form_state_values;
+}

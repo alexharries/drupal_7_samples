@@ -1,0 +1,107 @@
+//
+// @file
+// A miniature set of base variables and settings for Sass projects, based on/
+// @see docroot/web/docroot/profiles/uk/themes/custom/fcl_uk_fc/sass/_base.scss
+
+$mobile-breakpoint-lower: 0px;
+$mobile-breakpoint-upper: 530px;
+$tablet-breakpoint-lower: $mobile-breakpoint-upper;
+$tablet-breakpoint-upper: 1000px;
+$desktop-breakpoint-lower: $tablet-breakpoint-upper;
+$desktop-breakpoint-upper: 99999px;
+
+$site-gutter-width: 10px;
+$row-height: 1.5rem;
+
+// Colour variables.
+
+// Colours are named using http://chir.ag/projects/name-that-color
+// If two colors are so similar that they have the same name, then you should
+// choose one of them instead of using both. Color names are in uppercase
+// because they should be treated like constants, not variables.
+// @see: https://davidwalsh.name/sass-color-variables-dont-suck
+$ABBY: #515255;
+$ALTO: #D8D8D8;
+$BLACK: #000000;
+$BLAZE_ORANGE: #FF6600;
+$BOULDER: #797979;
+$CAPE_COD: #313333;
+$CERULEAN: #0FB6CF;
+$CHELSEA_CUCUMBER: #8DB64E;
+$CURIOUS_BLUE: #2B84CC;
+$DENIM: #116AB2;
+$FOREST_GREEN: #22B929;
+$GALLERY: #EAEAEA;
+$LIGHTNING_YELLOW: #FBC220;
+$LOCHMARA: #0077C8;
+$MERCURY: #E4E4E4;
+$MINE_SHAFT: #3F3F3F;
+$PERSIAN_RED: #CF322B;
+$PICTON_BLUE: #42B6E7;
+$POMEGRANATE: #F13A34;
+$RED: #EE0000;
+$GUARDSMAN_RED: #CC0C00;
+$SEANCE: #711a99;
+$SCORPION: #595959; // This is the lightest allowable grey on white.
+$SHARK: #212126;
+$SHIP_GRAY: #424248;
+$SILVER: #BCBCBC;
+$SILVER_CHALICE: #AAAAAA;
+$SPRING_GREENS: #4F7F56;
+$SUN: #F8B51C;
+$SUSHI: #72AA33;
+$TANGO: #E87324;
+$TEAL: #007E7A;
+$TUNA: #383A40;
+$WHITE: #FFFFFF;
+$WILD_SAND: #F4F4F4;
+$MONKEY_GREY: #444;
+
+// A theme should have no more than three "branding colors". You can define them
+// here to allow for easy re-branding.
+$primary: $RED;
+$secondary: $DENIM;
+$luxury: $MINE_SHAFT;
+$escapes: $PICTON_BLUE;
+$journeys: $SUSHI;
+
+// Variant-specific colours - variant-a has a light grey top half with black
+// logos and text, and a dark grey bottom with white logos and text.
+$footer-top-half-colour-variant-a: #383a40;
+$footer-top-half-bg-colour-variant-a: #dbdbdb;
+$footer-bottom-half-colour-variant-a: $WHITE;
+$footer-bottom-half-bg-colour-variant-a: $SHIP_GRAY;
+
+// variant-b has a dark grey top half with white logos and text, and a light
+// grey bottom with black logos and text.
+$footer-top-half-colour-variant-b: $footer-bottom-half-colour-variant-a;
+$footer-top-half-bg-colour-variant-b: $footer-bottom-half-bg-colour-variant-a;
+$footer-bottom-half-colour-variant-b: $footer-top-half-colour-variant-a;
+$footer-bottom-half-bg-colour-variant-b: $footer-top-half-bg-colour-variant-a;
+
+// Fonts.
+$arial:           Arial, Helvetica, "Nimbus Sans L", sans-serif;
+$courier:         "Courier New", "DejaVu Sans Mono", monospace, sans-serif;
+$impact:          Impact, "Arial Narrow", Helvetica, sans-serif;
+$gillsans:        "Gill Sans", "GillSans", "Cabin", Arial, Helvetica, sans-serif;
+$gillsans-bold:   "Gill Sans Bold", "GillSans-Bold", "Cabin", Arial, Helvetica, sans-serif;
+$gillsans-bold-italic: "Gill Sans Bold Italic", "Cabin", Arial, Helvetica, sans-serif;
+$gillsans-extra-bold: "Gill Sans Extra Bold", "Cabin", Arial, Helvetica, sans-serif;
+$gillsans-light:  "Gill Sans Light", "GillSans-Light", "Cabin", Arial, Helvetica, sans-serif;
+$gillsans-light-italic: "Gill Sans Light Italic", "Cabin", Arial, Helvetica, sans-serif;
+$gillsans-italic: "Gill Sans Italic", "Cabin", Arial, Helvetica, sans-serif;
+$number-font:     "Gill Sans Numbers", "GillSans-Numbers", "Gill Sans Extra Bold", "Gill Sans Bold", "Cabin", Arial, Helvetica, sans-serif;
+$georgia:         "Georgia", "Baskerville", "Baskerville Old Face", 'Hoefler Text', "Times New Roman", serif;
+$icon-font:       "fc-font", "Gill Sans", "GillSans", "Cabin", Arial, Helvetica, sans-serif;
+
+//
+// Partials to be shared with all .scss files.
+//
+
+@import "compass/support"; // Add Compass' IE and vendor prefix support variables.
+@import "compass/utilities/general/clearfix"; // Better than Drupal's clearfix.
+@import "compass/utilities/sprites"; // See http://compass-style.org/help/tutorials/spriting/
+@import "compass/css3"; // Use one CSS3 mixin instead of multiple vendor prefixes.
+@import "compass/typography/lists"; // Helps with styling lists.
+@import "compass/typography/vertical_rhythm"; // Helps set up a vertical rhythm.
+@import "mixins"; // Import our custom mixins last.

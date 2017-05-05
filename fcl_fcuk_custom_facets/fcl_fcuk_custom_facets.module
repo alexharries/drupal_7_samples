@@ -1,0 +1,858 @@
+<?php
+/**
+ * @file
+ * Alter facets on apache solr search.
+ *
+ * @todo: Rename to fcluk_custom_facets. Split fcuk-specific code into
+ * site-specific module.
+ */
+
+module_load_include('inc', 'fcl_fcuk_custom_facets', 'fcl_fcuk_custom_facets.aliases');
+
+/**
+ * Implements hook_facetapi_facet_info().
+ */
+function fcl_fcuk_custom_facets_facetapi_facet_info($searcher_info) {
+  $facets = array();
+
+  $facets['flight_class'] = array(
+    'name' => 'flight_class',
+    'label' => t('Flight Class'),
+    'field' => 'ss_product_selection',
+    'description' => t('Custom facet by for FCUK Flight Classes.'),
+    'query types' => array('term'),
+  );
+
+  // Itinerary in facet.
+  $facets['sm_itinerary_destination_full'] = array(
+    'field' => 'sm_itinerary_destination_full',
+    'label' => t('Itinerary destination heirarchy'),
+    'description' => t('Filter by "itinerary in"'),
+    'query types' => array('term'),
+    'hierarchy callback' => 'fcl_fcuk_custom_facets_get_taxonomy_hierarchy',
+    'map callback' => 'fcl_fcuk_custom_facets_map_taxonomy_terms',
+    'alter callbacks' => ['fcl_fcuk_custom_facets_alter_taxonomy_terms'],
+  );
+
+  return $facets;
+}
+
+/**
+ * Alter callback for altering facet values.
+ */
+function fcl_fcuk_custom_facets_alter_taxonomy_terms(&$build, FacetapiAdapter $adapter, array $facet) {
+  if (empty($build)) {
+    return $build;
+  }
+
+  // Remove the values that aren't whitelisted.
+  $query = db_select('taxonomy_term_data', 't');
+  $query->join('field_data_field_allowed_holiday_parent', 'a', 't.tid = a.entity_id AND a.field_allowed_holiday_parent_value = 1');
+  $query->fields('t', array('source_id', 'name'))
+    ->condition('t.source_id', array_keys($build), 'IN');
+  $result = $query->execute()->fetchAllKeyed();
+
+  // Change tids to SEO-friendly names for url.
+  $new_build = [];
+  foreach ($build as $key => $value) {
+    if (!empty($result[$key])) {
+      $name = fcl_fcuk_custom_facets_map_sanitize($result[$key]);
+      $new_build[$name] = $value;
+    }
+  }
+  $build = $new_build;
+}
+
+/**
+ * Gets human readable labels for taxonomy terms.
+ */
+function fcl_fcuk_custom_facets_map_taxonomy_terms(array $values) {
+  $map = [];
+  foreach ($values as $value) {
+    $map[$value] = fcl_fcuk_custom_facets_map_unsanitize($value);
+  }
+  return $map;
+}
+
+/**
+ * Replace spaces with underscores for URL.
+ *
+ * @param string $raw
+ *   The string with spaces.
+ *
+ * @return string
+ *   The string with underscores.
+ */
+function fcl_fcuk_custom_facets_map_sanitize($raw) {
+  return str_replace(' ', '_', $raw);
+}
+
+/**
+ * Replace underscores with spaces from URL.
+ *
+ * @param string $sanitized
+ *   The string with underscores.
+ *
+ * @return string
+ *   The string with spaces.
+ */
+function fcl_fcuk_custom_facets_map_unsanitize($sanitized) {
+  return str_replace('_', ' ', $sanitized);
+}
+
+/**
+ * Gets parent information for taxonomy terms.
+ *
+ * Similar to facetapi_get_taxonomy_hierarchy() except using AND to filter out
+ * un-necessary parents.
+ *
+ * @param array $values
+ *   An array containing the term ids.
+ *
+ * @return array
+ *   An associative array keyed by term ID to parent ID.
+ */
+function fcl_fcuk_custom_facets_get_taxonomy_hierarchy(array $values) {
+  // Top-level destinations will have a parent value of 0.
+  $values[] = 0;
+
+  foreach ($values as $key => $value) {
+    $values[$key] = fcl_fcuk_custom_facets_map_unsanitize($value);
+  }
+
+  // Base table is the child/parent relation.
+  $query = db_select('taxonomy_term_edge', 'te');
+  // Is the child allowed?
+  $query->join('field_data_field_allowed_holiday_parent', 'at', 'te.tid = at.entity_id');
+  // Is the parent allowed?
+  $query->join('field_data_field_allowed_holiday_parent', 'ap', 'te.parent = ap.entity_id');
+  // Join the name of the child term.
+  $query->join('taxonomy_term_data', 'td', 'te.tid = td.tid');
+  // Join the name of the parent term.
+  $query->join('taxonomy_term_data', 'tdp', 'te.parent = tdp.tid');
+  $query
+    // Return the child term name.
+    ->fields('td', ['name'])
+    // Return the parent term name.
+    ->fields('tdp', ['name'])
+    // Only query children that are in our facet list.
+    ->condition('td.name', $values, 'IN')
+    // Only query parents that are in our facet list.
+    ->condition('tdp.name', $values, 'IN')
+    // Is the child name allowed?
+    ->condition('at.field_allowed_holiday_parent_value', '1')
+    // Is the parent name allowed?
+    ->condition('ap.field_allowed_holiday_parent_value', '1')
+    // The parent should not be the same as the child.
+    ->where('te.tid != te.parent')
+    // Return the nearest parent for each child.
+    ->orderBy('te.distance');
+  $result = $query->execute();
+
+  $parents = [];
+  foreach ($result as $record) {
+    $child = fcl_fcuk_custom_facets_map_sanitize($record->name);
+    $parent = fcl_fcuk_custom_facets_map_sanitize($record->tdp_name);
+    // Don't assign it if empty, because we only want the first parent, not
+    // all ancestors. We can't use GROUP BY or our ordering won't work.
+    if (empty($parents[$child])) {
+      $parents[$child][] = $parent;
+    }
+  }
+  return $parents;
+}
+
+/**
+ * Provides a list of airline rewrites.
+ *
+ * @todo : This function should no longer be necessary. Check if other modules
+ * are using it.
+ */
+function fcl_fcuk_custom_facets_get_airline_rewrites() {
+  $exceptions = array(
+    'Flight Centre Phone Only Airfare' => 'FlightCentre',
+    'KLM ROYAL DUTCH AIRLINES' => 'KLM',
+    'TAP AIR PORTUGAL' => 'TAP',
+    'EasyJet' => 'Easyjet',
+    'SRILANKAN AIRLINES' => 'SriLankan Airlines',
+  );
+  return $exceptions;
+}
+
+/**
+ * Implements hook_facetapi_facet_info_alter().
+ *
+ * Here we are simply specifying callbacks for the facet. The comments on each
+ * callback should describe what its purpose is.
+ */
+function fcl_fcuk_custom_facets_facetapi_facet_info_alter(&$facet_info, $searcher_info) {
+  // This function gets cached, so we want to fetch all aliased facet names,
+  // regardless of context.
+  $field_names = fcl_fcuk_custom_facets_aliases_get_field_names('all');
+  foreach ($field_names as $field_name => $field_name_alias) {
+    if (!empty($facet_info[$field_name])) {
+      // For each facet/field that has aliases, specify some callbacks where we
+      // will process the aliases.
+      $facet_info[$field_name]['map callback'] = 'fcl_fcuk_custom_facets_map_callback';
+      $facet_info[$field_name]['map options'] = ['field_name' => $field_name];
+      $facet_info[$field_name]['alter callbacks'][] = 'fcl_fcuk_custom_facets_alter_callback';
+    }
+  }
+}
+
+/**
+ * Alter callback for altering facet values.
+ */
+function fcl_fcuk_custom_facets_alter_callback(&$build, FacetapiAdapter $adapter, array $facet) {
+  $field_names = fcl_fcuk_custom_facets_aliases_get_field_names();
+  if (!empty($field_names[$facet['name']])) {
+    // This field has aliases.
+    $field_name = $field_names[$facet['name']];
+    $aliases = fcl_fcuk_custom_facets_aliases_list();
+    $new = [];
+    foreach ($build as $indexed_value => $build_item) {
+      if ($clean = fcl_fcuk_custom_facets_aliases_get_clean($field_name, $indexed_value)) {
+        unset($build[$indexed_value]);
+        if (isset($new[$clean])) {
+          // It has already been converted once, this is a duplicate.
+          if (empty($new[$clean]['#count'])) {
+            $new[$clean]['#count'] = 0;
+          }
+          $new[$clean]['#count'] += $build_item['#count'];
+        }
+        else {
+          $new[$clean] = $build_item;
+        }
+      }
+      elseif (!empty($aliases[$field_name]['exclusion_method'])) {
+        // We didn't find a matching alias. Delete it based on exclusion rules.
+        $listed = FALSE;
+        if (!empty($aliases[$field_name]['exclusion_list'])) {
+          if (in_array($indexed_value, $aliases[$field_name]['exclusion_list'])) {
+            $listed = TRUE;
+          }
+        }
+        if ($aliases[$field_name]['exclusion_method'] == 'whitelist' && !$listed) {
+          unset($build[$indexed_value]);
+        }
+        if ($aliases[$field_name]['exclusion_method'] == 'blacklist' && $listed) {
+          unset($build[$indexed_value]);
+        }
+      }
+    }
+    $build = array_merge($build, $new);
+  }
+}
+
+/**
+ * Map callback for displaying human-readable facet values in markup.
+ */
+function fcl_fcuk_custom_facets_map_callback($values, $options) {
+  $map = [];
+  $field_names = fcl_fcuk_custom_facets_aliases_get_field_names();
+  if (!empty($field_names[$options['field_name']])) {
+    // This field has aliases.
+    $field_name = $field_names[$options['field_name']];
+    $aliases = fcl_fcuk_custom_facets_aliases_list();
+    foreach ($values as $value) {
+      if (!empty($aliases[$field_name]['aliases'][$value])) {
+        $map[$value] = $aliases[$field_name]['aliases'][$value]['label'];
+      }
+      elseif ($clean = fcl_fcuk_custom_facets_aliases_get_clean($field_name, $value)) {
+        $map[$value] = $aliases[$field_name]['aliases'][$clean]['label'];
+      }
+    }
+  }
+
+  // Convert remaining Airlines from ALLCAPS to Title Case.
+  if ($options['field_name'] == 'ss_product_supplier') {
+    foreach ($values as $value) {
+      if (!isset($map[$value])) {
+        // We haven't already replaced it with something.
+        $title_case = ucwords(strtolower($value));
+        $map[$value] = $title_case;
+      }
+    }
+  }
+
+  return $map;
+}
+
+/**
+ * Implements hook_apachesolr_query_alter().
+ *
+ * Here we are processing aliases. Specifically an alias like "london" can be
+ * converted to a filter string like:
+ * - ("London" OR "London Gatwick" OR "London Heathrow")
+ * which alters which results are returned.
+ */
+function fcl_fcuk_custom_facets_apachesolr_query_alter(DrupalSolrQueryInterface $query) {
+  // Don't execute for mercury pages.
+  $context = $query->getContext();
+  $env_id = $context['env_id'];
+  if ($env_id !== 'acquia_search_server_1') {
+    return;
+  }
+
+  // Both 'ss_destination' and 'sm_itinerary_destination_full' use the pretty
+  // path 'destination', so we need to decide which filter to actually use.
+  $url = drupal_get_path_alias();
+  switch ($url) {
+    case 'holidays/search':
+    case 'first-and-business/luxury-holidays/search':
+    case 'group-tours/search':
+      // These urls use the itinerary field.
+      $query->removeFilter('ss_destination');
+      break;
+
+    case 'flights/search':
+    case 'first-and-business/search':
+    default:
+      // These urls use the destination field.
+      $query->removeFilter('sm_itinerary_destination_full');
+      break;
+  }
+
+  $filters = $query->getFilters();
+
+  // Process itinerary aliases.
+  foreach ($filters as $filter) {
+    if ($filter['#name'] == 'sm_itinerary_destination_full') {
+      $query->removeFilter($filter['#name'], $filter['#value']);
+      $value = fcl_fcuk_custom_facets_map_unsanitize($filter['#value']);
+      $value = taxonomy_get_term_by_name($value, 'fcl_product_destination');
+      $value = reset($value);
+      $value = $value->source_id;
+      $query->addFilter($filter['#name'], $value);
+    }
+  }
+
+  // Process aliases.
+  $filter_names = [];
+  for ($i = 0; $i < count($filters); $i++) {
+    if (!empty($filters[$i]['#name'])) {
+      $filter_names[$i] = $filters[$i]['#name'];
+    }
+  }
+
+  $aliases = fcl_fcuk_custom_facets_aliases_list();
+  foreach ($aliases as $aliases_field) {
+    $filter_name = $aliases_field['solr_field'];
+    if ($k = array_search($filter_name, $filter_names)) {
+      $filter = $filters[$k];
+      if (!empty($filter['#value'])) {
+        $values = trim($filter['#value'], '()');
+        $values = explode(' OR ', $values);
+        $additional = [];
+        foreach ($values as $k => $v) {
+          $values[$k] = $v = trim($v, '"');
+          if (!empty($aliases_field['aliases'][$v])) {
+            $additional = array_merge($additional, $aliases_field['aliases'][$v]['values']);
+            unset($values[$k]);
+          }
+        }
+        $values = array_merge($values, $additional);
+        $new_filter_string = '("' . implode('" OR "', $values) . '")';
+        $query->removeFilter($filter['#name'], $filter['#value']);
+        $query->addFilter($filter['#name'], $new_filter_string);
+      }
+    }
+  }
+
+  // Restrict solr views to Published products only.
+  if (!user_access('view unpublished fcl_procat_product entities')) {
+    $query->addFilter('ss_product_status', FCL_APACHESOLR_PROCAT_PRODUCT_PUBLISHED);
+  }
+}
+
+/**
+ * Implements hook_facetapi_url_processors().
+ */
+function fcl_fcuk_custom_facets_facetapi_url_processors() {
+
+  $current_path = current_path();
+  if (path_is_admin($current_path)) {
+    return;
+  }
+
+  global $base_url;
+  $search_url = drupal_get_path_alias();
+
+  // Exclude AJAX calls and non search pages.
+  if (request_path() == 'views/ajax' || strpos($search_url, 'search') === FALSE) {
+    return;
+  }
+
+  // Exclude already processed. Not great, but hotfix.
+  $query = drupal_get_query_parameters();
+  if (!empty($query['_processed'])) {
+    return;
+  }
+
+  // Redirects for IATA Codes.
+  if (!empty($query['iata'])) {
+    fcl_fcuk_custom_facets_iata_redirect($query);
+  }
+
+  // Setting variable if the search comes from a static form.
+  $is_static_search = FALSE;
+  $need_more_process = FALSE;
+
+  if (!empty($query['search'])) {
+    $is_static_search = TRUE;
+  }
+  $economy = FALSE;
+  $first_and_business = FALSE;
+  $white_list = array(
+    'destination_in',
+    'itinerary_in',
+    'destination',
+    'departure',
+    'flight_class',
+    'airlines',
+    'flight_type',
+    'type',
+    'star_rating',
+    'type',
+    'duration_in',
+    'utm_source',
+    'utm_medium',
+    'utm_campaign',
+    'utm_content',
+    'holiday_range',
+    'duration_days',
+    'price',
+    'price_gbp',
+    'travel_type',
+  );
+
+  foreach ($query as $param_name => $param_value) {
+    if (!in_array($param_name, $white_list) || $param_value == '') {
+      unset($query[$param_name]);
+      // Remove extra parameters added by the paginations.
+      $need_more_process = TRUE;
+    }
+  }
+
+  if (isset($query['flight_class'])) {
+    $class = strtolower($query['flight_class']);
+    // $class = str_replace('+', ' ', $class);
+    $class = urldecode($class);
+  }
+  else {
+    // If it's in F&B, keep ii in this section of the site.
+    if (strpos($search_url, 'first-and-business') !== FALSE) {
+      $class = 'all-fb-classes';
+    }
+    else {
+      $class = 'economy';
+    }
+  }
+
+  // Using 'destination_in' overrides the same value set in 'destination'.
+  if (!empty($query['destination_in']) && !empty($query['destination'])) {
+    $destinations = explode(',', $query['destination']);
+    $destination_ins = explode(',', $query['destination_in']);
+    foreach ($destinations as $key => $value) {
+      if (in_array($value, $destination_ins)) {
+        unset($destinations[$key]);
+        $need_more_process = TRUE;
+      }
+    }
+    if (empty($destinations)) {
+      unset($query['destination']);
+    }
+    else {
+      $query['destination'] = implode(',', $destinations);
+    }
+  }
+
+  switch ($class) {
+    case 'first class':
+    case 'business class':
+    case 'premium economy':
+    case 'all-fb-classes':
+      $first_and_business = TRUE;
+      break;
+
+    case 'economy':
+      $economy = TRUE;
+      break;
+  }
+
+  // If it's the holidays section, allow it to go here.
+  if (strpos($search_url, 'luxury-holidays/search') !== FALSE) {
+    $search_url = 'first-and-business/luxury-holidays/search';
+  }
+  elseif (strpos($search_url, 'holidays/search') !== FALSE) {
+    $search_url = 'holidays/search';
+  }
+  elseif (strpos($search_url, 'group-tours/search') !== FALSE) {
+    // Handle tours URL.
+    $search_url = 'group-tours/search';
+  }
+  elseif ($economy) {
+    $search_url = 'flights/search';
+  }
+  elseif ($first_and_business) {
+    $search_url = 'first-and-business/search';
+  }
+
+  // If the search doesn't come from static form, reprocess the url.
+  if (!$is_static_search && !$need_more_process) {
+    // If the search URL matches the current page the user is on, we don't need
+    // to do anything.
+    if (!isset($search_url) || $search_url == drupal_get_path_alias()) {
+      return;
+    }
+  }
+
+  // A dirty hack to prevent Drupal from thinking the 'destination' parameter in
+  // the URL is where it should redirect to.
+  unset($_GET['destination']);
+
+  // Processed flag.
+  $query['_processed'] = 1;
+  drupal_goto($base_url . '/' . $search_url, array('query' => $query));
+}
+
+/**
+ * Enable deep links using industry-recognised terms like IATA codes.
+ *
+ * Allow for various types of parameters. Rewrite them here to parameters
+ * expected by Solr.
+ *
+ * @param array &$query
+ *   Array of URL query params.
+ */
+function fcl_fcuk_custom_facets_iata_redirect(&$query) {
+
+  // Convert IATAs to destination names.
+  $key_list = [
+    'destination_in',
+    'destination',
+    'departure',
+  ];
+  foreach ($key_list as $key) {
+    if (!empty($query[$key])) {
+      $iatas = explode(',', $query[$key]);
+      foreach ($iatas as $k => $iata) {
+        $iatas[$k] = fcl_fcuk_custom_facets_iata_to_text($iata, $key);
+      }
+      $destinations = implode(',', $iatas);
+      if (empty($destinations)) {
+        // If we can't find the IATA, we strip out the parameter to avoid
+        // zero results.
+        unset($query[$key]);
+      }
+      else {
+        $query[$key] = $destinations;
+      }
+    }
+  }
+
+  // Convert airline code to airline name.
+  if (!empty($query['airlines'])) {
+    $codes = explode(',', $query['airlines']);
+    foreach ($codes as $k => $code) {
+      $codes[$k] = fcl_fcuk_custom_facets_get_airline_by_code($code);
+    }
+    $airlines = implode(',', $codes);
+    if (empty($airlines)) {
+      // If we can't find any matching airline, we strip out the parameter to
+      // avoid zero results.
+      unset($query['airlines']);
+    }
+    else {
+      $query['airlines'] = $airlines;
+    }
+  }
+
+  // Convert cabin_class to equivalent flight_class.
+  if (!empty($query['cabin_class'])) {
+    $class_eqivs = [
+      'economy' => 'Economy',
+      'premium' => 'Premium Economy',
+      'business' => 'Business Class',
+      'first' => 'First Class',
+    ];
+    $cabin_classes = explode(',', $query['cabin_class']);
+    $flight_classes = [];
+    foreach ($cabin_classes as $cabin_class) {
+      if (!empty($class_eqivs[$cabin_class])) {
+        $flight_classes[] = $class_eqivs[$cabin_class];
+      }
+    }
+    if (!empty($flight_classes)) {
+      $query['flight_class'] = implode(',', $flight_classes);
+    }
+    unset($query['cabin_class']);
+  }
+}
+
+/**
+ * Retrieve Airline name from code.
+ *
+ * @param string $code
+ *   Two digit airline code.
+ *
+ * @return string
+ *   Name of airline in format expected by Solr.
+ */
+function fcl_fcuk_custom_facets_get_airline_by_code($code) {
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'taxonomy_term')
+    ->entityCondition('bundle', 'fcl_product_supplier')
+    ->fieldCondition('field_airline_code', 'value', $code, '=')
+    ->range(0, 1);
+  $entities = $query->execute();
+  if (!empty($entities['taxonomy_term'])) {
+    $term = reset($entities['taxonomy_term']);
+    $term = taxonomy_term_load($term->tid);
+    return strtoupper($term->name);
+  }
+  return FALSE;
+}
+
+/**
+ * Accept an IATA code and return a destination name for Solr.
+ *
+ * @param string $iata
+ *   IATA code.
+ * @param string $field
+ *   URL parameter key.
+ *
+ * @return string
+ *   Destination name.
+ */
+function fcl_fcuk_custom_facets_iata_to_text($iata, $field) {
+  // If we can't find any mapping, we strip the value.
+  $destination_name = FALSE;
+
+  module_load_include('inc', 'fcl_fcuk_custom_facets', 'DestinationControllerFCUK');
+  $dc = new DestinationControllerFCUK();
+  $terms = $dc->getDestinationTermsByIATA($iata);
+
+  if (!empty($terms)) {
+    $tid = key($terms);
+    $term = taxonomy_term_load($tid);
+    $destination_name = $term->name;
+  }
+
+  return $destination_name;
+}
+
+/**
+ * Implements hook_facetapi_sort_info().
+ */
+function fcl_fcuk_custom_facets_facetapi_sort_info() {
+  $sorts = array();
+
+  $sorts['product_selection'] = array(
+    'label' => t('Selection sorting'),
+    'callback' => 'fcl_fcuk_custom_facets_sort_selection',
+    'description' => t('Sorting based on selection.'),
+    'weight' => -50,
+  );
+
+  return $sorts;
+}
+
+/**
+ * Sort randomly.
+ */
+function fcl_fcuk_custom_facets_sort_selection(array $a, array $b) {
+  $custom_order = array(
+    'Economy' => 0,
+    'Premium Economy' => 1,
+    'Business Class' => 2,
+    'First Class' => 3,
+  );
+
+  if (isset($custom_order[$b['#indexed_value']]) && isset($custom_order[$a['#indexed_value']])) {
+    $a = $custom_order[$a['#indexed_value']];
+    $b = $custom_order[$b['#indexed_value']];
+  }
+  // Return.
+  return ($a < $b) ? -1 : 1;
+}
+
+/**
+ * Implements hook_fcl_facet_prebuild_FACET_alter().
+ */
+function fcl_fcuk_custom_facets_fcl_facet_prebuild_ss_departure_alter(&$build) {
+  // $_facet - stub facet array.
+  $_facet = array(
+    '#path' => 'node/30976',
+    '#html' => FALSE,
+    '#active' => 0,
+    '#item_parents' => array(),
+    '#item_children' => array(),
+  );
+
+  // $_facet_roups.
+  $_grouped_facets = _fcl_fcuk_custom_facets_ss_departure_groupings();
+
+  // $_get_query_parameters.
+  $_get_query_parameters = drupal_get_query_parameters();
+
+  // Hydrate the facets.
+  foreach ($_grouped_facets as $_grouped_facets_key => $_grouped_facet) {
+    $_grouped_facets[$_grouped_facets_key]['#count'] = 0;
+    $_active = 0;
+    $_theme = 'fcl_facets_link_inactive';
+
+    if (isset($_get_query_parameters['departure'])) {
+      if (FALSE !== stripos($_get_query_parameters['departure'], $_grouped_facet['#indexed_value'])) {
+        $_active = 1;
+        $_theme = 'fcl_facets_link_active';
+      }
+    }
+
+    $_grouped_facets[$_grouped_facets_key]['#active'] = $_active;
+    $_grouped_facets[$_grouped_facets_key]['#indexed_value'] = array(
+      $_grouped_facet['#indexed_value'],
+    );
+    $_grouped_facets[$_grouped_facets_key]['#query'] = array(
+      'departure' => array(
+        $_grouped_facet['#indexed_value'],
+      ),
+    );
+    $_grouped_facets[$_grouped_facets_key]['#theme'] = $_theme;
+  }
+
+  // Process grouped facets.
+  foreach ($build as $_build_key => $_facet) {
+    foreach ($_grouped_facets as $_grouped_facets_key => $_grouped_facet) {
+      if (FALSE !== stripos($_facet['#indexed_value'], $_grouped_facet['match'])) {
+        // Add count and destination to the grouped facet.
+        $_grouped_facets[$_grouped_facets_key]['#count'] = $_grouped_facets[$_grouped_facets_key]['#count'] + $_facet['#count'];
+        $_facet_indexed_values = explode(',', str_replace(', ', ',', $_facet['#indexed_value']));
+        foreach ($_facet_indexed_values as $_facet_indexed_value) {
+          $_grouped_facets[$_grouped_facets_key]['#indexed_value'][] = $_facet_indexed_value;
+        }
+        if (!empty($_facet['#query']['departure'])) {
+          $_facet_departures = explode(',', str_replace(', ', ',', $_facet['#query']['departure']));
+          foreach ($_facet_departures as $_facet_departure) {
+            $_grouped_facets[$_grouped_facets_key]['#query']['departure'][] = $_facet_departure;
+          }
+        }
+        unset($build[$_build_key]);
+      }
+    }
+  }
+  // Add back onto the $build array ahead of sorting.
+  foreach ($_grouped_facets as $_grouped_facet) {
+    if ($_grouped_facet['#count'] > 0) {
+      $_grouped_facet['#indexed_value'] = array_unique($_grouped_facet['#indexed_value']);
+      // $_grouped_facet['#query']['departure'].
+      $_grouped_facet['#query']['departure'] = array_unique($_grouped_facet['#query']['departure']);
+      if (1 === $_grouped_facet['#active']) {
+        $_grouped_facet['#query']['departure'] = array_diff($_grouped_facet['#query']['departure'], $_grouped_facet['#indexed_value']);
+      }
+      if (count($_grouped_facet['#query']['departure']) < 1) {
+        unset($_grouped_facet['#query']['departure']);
+      }
+      else {
+        $_grouped_facet['#query']['departure'] = implode(',', $_grouped_facet['#query']['departure']);
+      }
+      $_grouped_facet['#indexed_value'] = implode(',', array_unique($_grouped_facet['#indexed_value']));
+      $build[$_grouped_facet['#indexed_value']] = array_merge($_facet, $_grouped_facet);
+    }
+  }
+
+  // $_build_sort.
+  $_build_sort = array();
+  foreach ($build as $_build_key => $_facet) {
+    $_build_sort[$_build_key] = $_facet['#count'];
+  }
+  ksort($_build_sort);
+
+  // Redeclare bukld sorted.
+  $build = array_merge($_build_sort, $build);
+
+  return FALSE;
+}
+
+/**
+ * Generate the allowed_values for the field_tour_range field.
+ *
+ * See fc_tour_field_default_field_bases().
+ *
+ * @return array
+ *   Array suitable for select list.
+ */
+function fcl_fcuk_custom_facets_type_select_tour() {
+  return fcl_fcuk_custom_facets_select_options('tours', 'type');
+}
+
+/**
+ * Generate the allowed_values for any field based on facet aliases.
+ *
+ * @return array
+ *   Array suitable for select list.
+ */
+function fcl_fcuk_custom_facets_select_options($context, $facet) {
+  $items = [];
+  $aliases = fcl_fcuk_custom_facets_aliases_list($context);
+  foreach ($aliases[$facet]['aliases'] as $clean => $alias) {
+    $items[$clean] = $alias['label'];
+  }
+  return $items;
+}
+
+/**
+ * Implements hook_preprocess_page().
+ */
+function fcl_fcuk_custom_facets_preprocess_page(&$variables) {
+  drupal_add_js(drupal_get_path('module', 'fcl_fcuk_custom_facets') . '/js/fcl_fcuk_custom_facets.facets.js');
+}
+
+/**
+ * Method to externalise groupings.
+ *
+ * @author Daniel Mullin email@danielmullin.com
+ * @todo these values probably need to be CMS configurable
+ * @return array
+ *   Returns configurable array of groups
+ */
+function _fcl_fcuk_custom_facets_ss_departure_groupings() {
+  // $_return.
+  $_return = array();
+
+  // London.
+  // match - Value you want  to match the indexed value with.
+  // #markup - Display value for the facet.
+  $_return['london'] = array(
+    'match' => 'London',
+    '#markup' => 'London',
+    '#indexed_value' => 'London',
+  );
+
+  // Newcastle.
+  $_return['newcastle'] = array(
+    'match' => 'Newcastle',
+    '#markup' => 'Newcastle',
+    '#indexed_value' => 'Newcastle',
+  );
+
+  // Scotland.
+  $_return['scotland'] = array(
+    'match' => 'Scotland',
+    '#markup' => 'Scotland',
+    '#indexed_value' => 'Scotland',
+  );
+
+  // return.
+  return $_return;
+}
+
+/**
+ * Implements hook_fcl_facet_prebuild_FACET_alter().
+ */
+function fcl_fcuk_custom_facets_fcl_facet_prebuild_is_mercury_holiday_price_from_alter(&$build) {
+  // Removes an option from the price facet.
+  if (is_array($build) && isset($build['[* TO -1]'])) {
+    unset($build['[* TO -1]']);
+  }
+}

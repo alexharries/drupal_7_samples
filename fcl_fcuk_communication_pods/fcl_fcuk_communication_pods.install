@@ -1,0 +1,110 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Flight Centre Communication
+ *   Pods module.
+ */
+
+// Include the module and schema files, so we can use their constants.
+module_load_include('module', 'fcl_fcuk_communication_pods');
+module_load_include('inc', 'fcl_fcuk_communication_pods', 'fcl_fcuk_communication_pods.schema');
+
+/**
+ * Implements hook_schema().
+ *
+ * If you're wondering where you've seen this code before, it's lifted
+ * (somewhat) from block.install.
+ */
+function fcl_fcuk_communication_pods_schema() {
+  return _fcl_fcuk_communication_pods_schema_definitions();
+}
+
+/**
+ * Install the database schema for the fcl_fcuk_communication_pods module of
+ * awesomeness.
+ *
+ * @see: https://www.drupal.org/docs/7/api/schema-api/updating-tables-hook_update_n-functions
+ */
+function fcl_fcuk_communication_pods_update_7101() {
+  $schema = _fcl_fcuk_communication_pods_schema_definitions();
+  db_create_table(COMMUNICATION_PODS_SCHEMA_NAME, $schema[COMMUNICATION_PODS_SCHEMA_NAME]);
+}
+
+/**
+ * If the Communication Pods' controller class isn't being auto-included,
+ * rebuild the registry now.
+ */
+function fcl_fcuk_communication_pods_update_7102() {
+  if (!class_exists(COMMUNICATION_PODS_ENTITY_CONTROLLER)) {
+    registry_rebuild();
+    entity_info_cache_clear();
+  }
+}
+
+/**
+ * Assign permissions to manage communication pods to selected user groups.
+ *
+ * - Administrators get all permissions,
+ * - Authenticated users get edit own and delete own permissions.
+ */
+function fcl_fcuk_communication_pods_update_7103() {
+  // Set up a message to be returned by this update hook.
+  $message = '';
+
+  $administrator_role_updated = FALSE;
+  if ($administrator_role = user_role_load_by_name('administrator')) {
+    user_role_grant_permissions($administrator_role->rid, [
+      COMMUNICATION_POD_PERM_ADMIN_OVERVIEW,
+      COMMUNICATION_POD_PERM_CREATE,
+      COMMUNICATION_POD_PERM_EDIT_OWN,
+      COMMUNICATION_POD_PERM_EDIT_ANY,
+      COMMUNICATION_POD_PERM_DELETE_OWN,
+      COMMUNICATION_POD_PERM_DELETE_ANY,
+      COMMUNICATION_POD_PERM_EDIT_JS,
+    ]);
+
+    $administrator_role_updated = TRUE;
+  }
+
+  // Add the status of our admin role update to the message.
+  if ($administrator_role_updated) {
+    $message .= t('Updated administrator role ID @administrator_role_id with permission to manage all Communication Pods.', [
+      '@administrator_role_id' => $administrator_role->rid,
+    ]);
+  }
+  else {
+    $message .= t("Something went wrong and I couldn't update the administrator role ID @administrator_role_id with permission to manage all Communication Pods :(", [
+      '@administrator_role_id' => $administrator_role->rid,
+    ]);
+  }
+
+  // This _should_ be 2, but we can't assume it is. Only allow authenticated
+  // users to edit their own pods; we don't grant any other perms - not even
+  // the ability to access the admin area.
+  $authenticated_user_role_updated = FALSE;
+  if ($authenticated_user_role = user_role_load_by_name('authenticated user')) {
+    user_role_grant_permissions($authenticated_user_role->rid, [
+      COMMUNICATION_POD_PERM_EDIT_OWN,
+      COMMUNICATION_POD_PERM_DELETE_OWN,
+    ]);
+
+    $authenticated_user_role_updated = TRUE;
+  }
+
+  // Add the status of our admin role update to the message.
+  if ($authenticated_user_role_updated) {
+    $message .= "\r\n\r\n" . t('Updated authenticated user role ID @authenticated_user_role_id with permission to edit and delete their own Communication Pods. If you wish to grant access to view and optionally edit Communication Pods, you should also at a minimum grant the @ADMIN_PERMISSION permission.', [
+      '@authenticated_user_role_id' => $authenticated_user_role->rid,
+      '@ADMIN_PERMISSION' => COMMUNICATION_POD_PERM_ADMIN_OVERVIEW,
+    ]);
+  }
+  else {
+    $message .= "\r\n\r\n" . t("Something went wrong and I couldn't update the authenticated user ID @authenticated_user_role_id with permission to edit/delete their own pods :(", [
+      '@authenticated_user_role_id' => $authenticated_user_role->rid,
+    ]);
+  }
+
+  return $message;
+}
+

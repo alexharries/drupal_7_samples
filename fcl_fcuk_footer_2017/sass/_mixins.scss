@@ -1,0 +1,155 @@
+//
+// Custom sass mixins
+//
+// To use a mixin in this file, add this line to the top of your .scss file:
+//   @import "base";
+// Then to use a mixin for a particular rule, add this inside the ruleset's
+// curly brackets:
+//   @include mix-in-name;
+
+// Bring in the clearfix from Bootstrap.
+@import "bootstrap/mixins/clearfix";
+
+//
+// BACKGROUND IMAGE MIXIN
+// Used: whenever you include a background image. This will also include
+// the retina version aswell.
+//
+@mixin background-image-retina($color, $file, $type, $xPos, $yPos, $important:false) {
+
+  $width: image-width($file + '.' + $type);
+  $height: image-height($file + '.' + $type);
+  background-color: $color;
+  @if $important == true {
+    background-image: image-url($file + '.' + $type, false, false) !important;
+  } @else {
+    background-image: image-url($file + '.' + $type, false, false);
+  }
+  background-repeat: no-repeat;
+  background-position: $xPos $yPos;
+  @media only screen and (-webkit-min-device-pixel-ratio: 2),
+  only screen and (-moz-min-device-pixel-ratio: 2),
+  only screen and (-o-min-device-pixel-ratio: 2/1),
+  only screen and (min-device-pixel-ratio: 2),
+  only screen and (min-resolution: 192dpi),
+  only screen and (min-resolution: 2dppx) {
+    @if $important == true {
+      background-image: image-url($file + '-@2x.' + $type, false, false) !important;
+    } @else {
+      background-image: image-url($file + '-@2x.' + $type, false, false);
+    }
+    @include background-size($width $height);
+  }
+}
+
+//
+//  Function to create an optimized svg url
+//
+@function svg-url($path, $colour: "none", $width: "none", $height: "none", $svg-replace-colour: "none") {
+  $data: inline_svg_image($path);
+  $index: str-index($data, '<svg') + 4;
+
+  $params: ' ';
+
+  // Only add width, height and colour if we have been given these values.
+  @if $colour != "none" {
+    $params: $params + ' fill="#{$colour}"';
+  }
+
+  @if $width != "none" {
+    $params: $params + ' width="#{$width}"';
+  }
+
+  @if $height != "none" {
+    $params: $params + ' height="#{$height}"';
+  }
+
+  $svg: str_insert($data, $params, $index);
+
+  // Do we have a colour to replace in the SVG?
+  @if $svg-replace-colour != "none" {
+    //$svg-replace-colour: str-replace($svg-replace-colour, '#', '%23');
+    //$colour: str-replace($colour, '#', '%23');
+    $svg: str-replace($svg, '#' + $svg-replace-colour, $colour);
+  }
+
+  //
+  //  Chunk up string in order to avoid
+  //  "stack level too deep" error
+  //
+  $encoded: '';
+  $slice: 2000;
+  $index: 0;
+  $loops: ceil(str-length($svg)/$slice);
+  @for $i from 1 through $loops {
+    $chunk: str-slice($svg, $index, $index + $slice - 1);
+    //
+    //   Encode (may need a few extra replacements)
+    //
+    $chunk: str-replace($chunk, '"', '\'');
+    $chunk: str-replace($chunk, '<', '%3C');
+    $chunk: str-replace($chunk, '>', '%3E');
+    $chunk: str-replace($chunk, '&', '%26');
+    $chunk: str-replace($chunk, '#', '%23');
+    $encoded: #{$encoded}#{$chunk};
+    $index: $index + $slice;
+  }
+
+  @return url("data:image/svg+xml;charset=utf8,#{$encoded}");
+}
+
+//
+// Convert a hex code to a url-encoding-friendly string.
+@function url-friendly-colour($colour) {
+  @return '%23' + str-slice('#{$colour}', 2, -1)
+}
+
+//
+// Creates a standardised SVG Icon style.
+//
+@mixin svg-icon($path, $width, $height, $colour: "none", $svg-replace-colour: "none") {
+  background: svg-url($path, $colour, $width, $height, $svg-replace-colour) no-repeat center center;
+  display: inline-block;
+  width: #{$width}px;
+  height: #{$height}px;
+  -webkit-background-size: cover;
+  background-size: cover;
+}
+
+//
+//  Helper function to replace characters in a string
+//
+@function str-replace($string, $search, $replace: '') {
+  // Search the $string for $search.
+  $index: str-index($string, $search);
+
+  // Loop until no more occurrences of the string have been found.
+  @while $index {
+    @if $index {
+      $string: str-slice($string, 1, $index - 1) + $replace +
+            str-replace(str-slice($string, $index +
+            str-length($search)), $search, $replace);
+
+      // Search again.
+      $index: str-index($string, $search);
+    }
+  }
+
+  @return $string;
+}
+
+// This clearfix mixin is "borrowed" from Compass' _clearfix.scss file.
+//
+// "This is an updated version of the PIE clearfix method that reduces the amount of CSS output.
+// If you need to support Firefox before 3.5 you need to use `legacy-pie-clearfix` instead.
+//
+// "Adapted from: [A new micro clearfix hack](http://nicolasgallagher.com/micro-clearfix-hack/)"
+//
+// Also @see "Bring in the clearfix from Bootstrap." at the top of this file.
+@mixin clearfix {
+  &:after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+}

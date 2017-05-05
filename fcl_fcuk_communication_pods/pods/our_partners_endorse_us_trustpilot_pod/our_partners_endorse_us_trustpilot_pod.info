@@ -1,0 +1,9 @@
+; Info file for this pod.
+pod_name = "Our partners endorse us" Trustpilot pod
+
+; This pod is disabled for the first round of development on this feature.
+disabled = 1
+
+; Only show on the holidays search results page.
+paths[] = holidays/search
+paths[] = holidays/search/*

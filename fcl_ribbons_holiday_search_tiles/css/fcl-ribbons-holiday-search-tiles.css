@@ -1,0 +1,29 @@
+/**
+ @file
+ Basic styles for the Holiday Search Tiles Paragraphs module.
+
+ Note that we only set basic layout-y stuff here; you will probably want to
+ copy either this CSS file or the SCSS file (in the ./scss directory in this
+ module) and place it into your theme, where you can customise the layout
+ of these holiday tiles.
+ */
+
+/* The tiles container. */
+.paragraphs-item--holiday-search-tiles {
+
+}
+
+/* The wrapper around the tiles themselves. */
+.paragraphs-item--holiday-search-tiles .holiday-search-tiles {
+
+}
+
+/* The more results link and its container. */
+.paragraphs-item--holiday-search-tiles .more-results-link {
+
+}
+
+.paragraphs-item--holiday-search-tiles .more-results-link a {
+  /* Set a colour so we know this CSS file has been included correctly. */
+  color: hotpink;
+}

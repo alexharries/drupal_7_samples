@@ -1,0 +1,6 @@
+; Info file for this pod.
+pod_name = "The First Retailer To Be Recommended By Good Housekeeping"
+
+; Only show on the holidays search results page.
+paths[] = holidays/search
+paths[] = holidays/search/*
