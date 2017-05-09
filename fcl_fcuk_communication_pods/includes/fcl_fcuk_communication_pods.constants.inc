@@ -33,7 +33,7 @@ const COMMUNICATION_POD_CACHE_LIFETIME = (15 * 60);
  *
  * This is the schema's name.
  */
-const COMMUNICATION_PODS_SCHEMA_NAME = 'fcl_fcuk_communication_pods';
+const COMMUNICATION_POD_SCHEMA_NAME = 'fcl_fcuk_communication_pods';
 
 /**
  * The name of the pod's machine name column.
@@ -58,27 +58,27 @@ const COMMUNICATION_POD_LANGUAGE_FIELD = 'language';
 /**
  * The name of the Communication Pod entity.
  */
-const COMMUNICATION_PODS_ENTITY_NAME = 'communication_pod';
+const COMMUNICATION_POD_ENTITY_NAME = 'communication_pod';
 
 /**
  * The name of the Communication Pod bundle.
  */
-const COMMUNICATION_PODS_BUNDLE_NAME = COMMUNICATION_PODS_ENTITY_NAME;
+const COMMUNICATION_POD_BUNDLE_NAME = COMMUNICATION_POD_ENTITY_NAME;
 
 /**
  * The URI callback for the entity controller.
  */
-const COMMUNICATION_PODS_ENTITY_URI_CALLBACK = 'fcl_fcuk_communication_pods_pod_uri';
+const COMMUNICATION_POD_ENTITY_URI_CALLBACK = 'fcl_fcuk_communication_pods_pod_uri';
 
 /**
  * The label callback for the entity controller.
  */
-const COMMUNICATION_PODS_ENTITY_LABEL_CALLBACK = 'fcl_fcuk_communication_pods_pod_label';
+const COMMUNICATION_POD_ENTITY_LABEL_CALLBACK = 'fcl_fcuk_communication_pods_pod_label';
 
 /**
  * And the Communication Pod entity controller.
  */
-const COMMUNICATION_PODS_ENTITY_CONTROLLER = 'CommunicationPodController';
+const COMMUNICATION_POD_ENTITY_CONTROLLER = 'CommunicationPodController';
 
 /**
  * Flags used to indicate if a pod was found or not.
@@ -89,7 +89,7 @@ const COMMUNICATION_POD_NOT_FOUND = 'COMMUNICATION_POD_NOT_FOUND';
 /**
  * The base path for the Communication Pods administration section.
  */
-const COMMUNICATION_PODS_ADMIN_URL = 'admin/content/communication-pods';
+const COMMUNICATION_POD_ADMIN_URL = 'admin/content/communication-pods';
 
 /**
  * The base path for a Communication Pod's view URL.

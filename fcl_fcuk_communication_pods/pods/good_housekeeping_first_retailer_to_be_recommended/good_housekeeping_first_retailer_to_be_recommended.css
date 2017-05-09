@@ -78,7 +78,7 @@
 .communication-pod--good-housekeeping-first-retailer-to-be-recommended .good-housekeeping-logo {
   height: 200px;
   width: 100%;
-  background: transparent url('./images/good-housekeeping-logo-and-magazine.png') no-repeat center;
+  background: transparent url('{pod_url}/images/good-housekeeping-logo-and-magazine.png') no-repeat center;
   background-size: contain;
 }
 

@@ -1,9 +1,7 @@
 <?php
-
 /**
  * @file
- * Install, update and uninstall functions for the Flight Centre Communication
- *   Pods module.
+ * Install file for the Communication Pods module of awesomeness.
  */
 
 // Include the module and schema files, so we can use their constants.
@@ -21,22 +19,41 @@ function fcl_fcuk_communication_pods_schema() {
 }
 
 /**
+ * Enable the fcl_fcuk_communication_pod_paragraph module.
+ */
+function fcl_fcuk_communication_pods_update_7101() {
+  $feature_name = 'fcl_fcuk_communication_pod_paragraph';
+  $return = module_enable(array($feature_name));
+
+  // Also do a features revert on the module.
+  features_revert_module($feature_name);
+
+  if ($return) {
+    return t('Enabled the fcl_fcuk_communication_pod_paragraph module.');
+  }
+  else {
+    // In case of an error, output an error message.
+    return t('Something went wrong enabling fcl_fcuk_communication_pod_paragraph; please check the server logs for more info. Sad face :(');
+  }
+}
+
+/**
  * Install the database schema for the fcl_fcuk_communication_pods module of
  * awesomeness.
  *
  * @see: https://www.drupal.org/docs/7/api/schema-api/updating-tables-hook_update_n-functions
  */
-function fcl_fcuk_communication_pods_update_7101() {
+function fcl_fcuk_communication_pods_update_7102() {
   $schema = _fcl_fcuk_communication_pods_schema_definitions();
-  db_create_table(COMMUNICATION_PODS_SCHEMA_NAME, $schema[COMMUNICATION_PODS_SCHEMA_NAME]);
+  db_create_table(COMMUNICATION_POD_SCHEMA_NAME, $schema[COMMUNICATION_POD_SCHEMA_NAME]);
 }
 
 /**
  * If the Communication Pods' controller class isn't being auto-included,
  * rebuild the registry now.
  */
-function fcl_fcuk_communication_pods_update_7102() {
-  if (!class_exists(COMMUNICATION_PODS_ENTITY_CONTROLLER)) {
+function fcl_fcuk_communication_pods_update_7103() {
+  if (!class_exists(COMMUNICATION_POD_ENTITY_CONTROLLER)) {
     registry_rebuild();
     entity_info_cache_clear();
   }
@@ -48,7 +65,7 @@ function fcl_fcuk_communication_pods_update_7102() {
  * - Administrators get all permissions,
  * - Authenticated users get edit own and delete own permissions.
  */
-function fcl_fcuk_communication_pods_update_7103() {
+function fcl_fcuk_communication_pods_update_7104() {
   // Set up a message to be returned by this update hook.
   $message = '';
 
@@ -107,4 +124,3 @@ function fcl_fcuk_communication_pods_update_7103() {
 
   return $message;
 }
-

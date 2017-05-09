@@ -19,17 +19,8 @@
 /**
  * Includes.
  */
-// Include our constants file first.
-module_load_include('inc', 'fcl_fcuk_communication_pods', 'fcl_fcuk_communication_pods.constants');
-
-// Include our entity functions file.
-module_load_include('inc', 'fcl_fcuk_communication_pods', 'fcl_fcuk_communication_pods.entity');
-
-// Include our functions file.
-module_load_include('inc', 'fcl_fcuk_communication_pods', 'fcl_fcuk_communication_pods.functions');
-
-// Include our forms.
-module_load_include('inc', 'fcl_fcuk_communication_pods', 'fcl_fcuk_communication_pods.forms');
+module_load_include('inc', 'fcl_uk_utilities', 'fcl_uk_utilities.autoloader');
+fcl_uk_utilities_autoload_includes('fcl_fcuk_communication_pods');
 
 /**
  * Implements hook_permission().
@@ -99,7 +90,7 @@ function fcl_fcuk_communication_pods_menu() {
     ],
 
     // The admin overview page.
-    COMMUNICATION_PODS_ADMIN_URL => [
+    COMMUNICATION_POD_ADMIN_URL => [
       'title' => 'Communication Pods',
       'description' => 'An overview page which lists all Communication Pods on the site.',
       'page callback' => 'fcl_fcuk_communication_pods_admin_page',
@@ -108,34 +99,37 @@ function fcl_fcuk_communication_pods_menu() {
     ],
 
     // The overview page.
-    COMMUNICATION_PODS_ADMIN_URL . '/overview-page' => [
+    COMMUNICATION_POD_ADMIN_URL . '/overview-page' => [
       'title' => 'Overview',
       'type' => MENU_DEFAULT_LOCAL_TASK,
+      'weight' => -9,
     ],
 
     // The preview page which shows all communication pods.
-    COMMUNICATION_PODS_ADMIN_URL . '/preview' => [
+    COMMUNICATION_POD_ADMIN_URL . '/preview' => [
       'title' => 'Preview',
       'description' => 'Displays a demo of each Communication Pod with their configuration settings.',
       'page callback' => 'fcl_fcuk_communication_pods_test_page',
       'type' => MENU_LOCAL_TASK,
       'access arguments' => [COMMUNICATION_POD_PERM_ADMIN_OVERVIEW],
+      'weight' => -8,
     ],
 
     // A page where you can enter a path and see which Communication Pods will
     // display on that page.
     // @todo: this don't exist yet, captain. And we need more power.
-    COMMUNICATION_PODS_ADMIN_URL . '/url-checker' => [
+    COMMUNICATION_POD_ADMIN_URL . '/url-checker' => [
       'title' => 'URL checker',
       'description' => 'On this page, you can enter a path and see which Communication Pods will display at that path.',
       'page callback' => 'drupal_get_form',
       'page arguments' => ['fcl_fcuk_communication_pods_url_checker'],
       'type' => MENU_LOCAL_TASK,
       'access arguments' => [COMMUNICATION_POD_PERM_ADMIN_OVERVIEW],
+      'weight' => -7,
     ],
 
     // A form to create a pod.
-    COMMUNICATION_PODS_ADMIN_URL . '/' . COMMUNICATION_POD_ACTION_CREATE => [
+    COMMUNICATION_POD_ADMIN_URL . '/' . COMMUNICATION_POD_ACTION_CREATE => [
       'title' => 'Create Pod',
       'description' => 'Create a custom Communication Pod by uploading the HTML, styles and any javascript.',
       'page callback' => 'fcl_fcuk_communication_pods_edit_pod_callback',
@@ -143,10 +137,11 @@ function fcl_fcuk_communication_pods_menu() {
       'type' => MENU_LOCAL_TASK,
       'access callback' => 'fcl_fcuk_communication_pods_access',
       'access arguments' => [COMMUNICATION_POD_ACTION_CREATE],
+      'weight' => -6,
     ],
 
     // The edit page for a pod.
-    COMMUNICATION_PODS_ADMIN_URL . '/' . COMMUNICATION_POD_ACTION_UPDATE . '/%fcl_fcuk_communication_pods' => [
+    COMMUNICATION_POD_ADMIN_URL . '/' . COMMUNICATION_POD_ACTION_UPDATE . '/%fcl_fcuk_communication_pods' => [
       'title callback' => 'fcl_fcuk_communication_pods_title_callback',
       'title arguments' => [COMMUNICATION_POD_ACTION_UPDATE, 4],
       'description' => 'Edit an existing Communication Pod.',
@@ -158,7 +153,7 @@ function fcl_fcuk_communication_pods_menu() {
     ],
 
     // The delete/revert page for a pod.
-    COMMUNICATION_PODS_ADMIN_URL . '/' . COMMUNICATION_POD_ACTION_DELETE . '/%fcl_fcuk_communication_pods' => [
+    COMMUNICATION_POD_ADMIN_URL . '/' . COMMUNICATION_POD_ACTION_DELETE . '/%fcl_fcuk_communication_pods' => [
       'title callback' => 'fcl_fcuk_communication_pods_title_callback',
       'title arguments' => [COMMUNICATION_POD_ACTION_DELETE, 4],
       'description' => 'Delete or revert an existing Communication Pod.',
@@ -176,7 +171,7 @@ function fcl_fcuk_communication_pods_menu() {
  */
 function fcl_fcuk_communication_pods_theme($existing, $type, $theme, $path) {
   return [
-    'communication-pod' => [
+    COMMUNICATION_POD_THEME_FUNCTION => [
       'variables' => [COMMUNICATION_POD_MACHINE_NAME => NULL],
       'render element' => 'element',
       'path' => drupal_get_path('module', 'fcl_fcuk_communication_pods') . '/templates',
@@ -187,112 +182,36 @@ function fcl_fcuk_communication_pods_theme($existing, $type, $theme, $path) {
 }
 
 /**
- * Implements hook_fcl_fcuk_communication_pods_parse_info_file_alter().
+ * Implements hook_fcl_fcuk_communication_pods_load_multiple_alter().
  *
- * @param stdClass $pod_info_file
- *   An object containing information about the communication pod from its
- *   info file.
+ * @param array $pods
+ *   An array of zero or more Communication Pod entities.
  *
- * @param string $pod_machine_name
- *   The name of the communication pod.
- */
-function fcl_fcuk_communication_pods_fcl_fcuk_communication_pods_parse_info_file_alter(stdClass &$pod_info_file, $pod_machine_name) {
-  // Add the pod's machine name.
-  $pod_info_file->{COMMUNICATION_POD_MACHINE_NAME} = $pod_machine_name;
-
-  // Initialise the pod. This merges in the CSS and JS for this pod.
-  fcl_fcuk_communication_pods_initialise_file_pod($pod_info_file);
-
-  // Add a theme function.
-  $pod_info_file->theme = COMMUNICATION_POD_THEME_FUNCTION;
-
-  // Always set the 'disabled' key on the pod, even if it's not disabled.
-  if (empty($pod_info_file->disabled)) {
-    $pod_info_file->disabled = FALSE;
-  }
-
-  // Convert numeric 0 or 1 to FALSE or TRUE as provided by the info file.
-  if ($pod_info_file->disabled === 0) {
-    $pod_info_file->disabled = FALSE;
-  }
-
-  if ($pod_info_file->disabled === 1) {
-    $pod_info_file->disabled = TRUE;
-  }
-
-  // Disable pods whose machine name ends in '__disabled'.
-  $pod_machine_name_substr = substr($pod_machine_name, (0 - strlen(COMMUNICATION_POD_POD_DISABLED)));
-  if ($pod_machine_name_substr == COMMUNICATION_POD_POD_DISABLED) {
-    $pod_info_file->disabled = TRUE;
-  }
-
-  // If the pod doesn't have a paths array, create one now with a single *
-  // entry.
-  if (empty($pod_info_file->paths)) {
-    $pod_info_file->paths = ['*'];
-  }
-}
-
-/**
- * Implementation of hook_views_api().
- */
-function fcl_fcuk_communication_pods_views_api() {
-  return array(
-    'api' => 3,
-    // Tell Views that this module implements Views templates.
-    'template path' => drupal_get_path('module', 'fcl_fcuk_communication_pods') . '/templates',
-  );
-}
-
-/**
- * Implements hook_preprocess_views_view().
+ * @param array $pods_to_load
+ *   An array of zero or more pods to return. If an empty array is passed,
+ *   all known pods will be returned.
  *
- * @param array $variables
- *   Theme variables.
+ * @param array $conditions
+ *   Entity load conditions. Not implemented.
+ * @param bool $reset
+ *   Set to TRUE to override any caching. This is useful when updating the
+ *   theme hooks for this module.
  */
-function fcl_fcuk_communication_pods_preprocess_views_view_unformatted(&$variables) {
-  // Implement a communication pod after the third search result on holidays
-  // search pages. Get the communication pod for this view result, if we have
-  // one, and insert it into the view results. This code is quite custom;
-  // depending on business logic for other implementations, you might have
-  // to hook into another view.
+function fcl_fcuk_communication_pods_fcl_fcuk_communication_pods_load_multiple_alter(&$pods, $pods_to_load, $conditions, $reset) {
+  foreach ($pods as $pod_machine_name => &$pod) {
+    // Initialise the pod with its file paths.
+    fcl_fcuk_communication_pods_initialise_pod($pod, $pod_machine_name);
+  }
 
-  // If we're being called via Ajax, we need to confirm that the
-  // We do this by looking at $_SERVER['REQUEST_URI'] to get the view name and
-  // display ID, for example:
-  // /views/ajax?_processed=1&view_name=fcluk_mercury_search&view_display_id=holidays&view_args=&view_path=product_search%2Fholidays&view_base_path=&view_dom_id=83770c4888ab4cbfb24d44e3c33ddaa7&pager_element=0&sort_by=price&sort_order=ASC&page=1&_processed=1
+  // Sort pods by their weights, if there's more than one pod.
+  if (count($pods) > 1) {
+    $weights = [];
 
-  // If it's an ajax call, check the request URI.
-  // @see/code stolen from fcl_fcuk_switch_theme.module.
-  $request_uri = request_uri();
-  $request_ur_parts = drupal_parse_url($request_uri);
-  $request_path = $request_ur_parts['path'];
-  $request_query = $request_ur_parts['query'];
-
-  $path = current_path();
-
-  if ($request_path == '/views/ajax') {
-    if (!empty($request_query['view_name']) && ($request_query['view_name'] == 'fcluk_mercury_search')) {
-      if (!empty($request_query['view_display_id']) && in_array($request_query['view_display_id'], [
-          'holidays',
-        ])
-      ) {
-        $path = 'holidays/search';
-      }
+    foreach ($pods as $pod_machine_name => $pod) {
+      $weights[$pod_machine_name] = $pod->weight;
     }
-  }
 
-  // Get the page number. Note that the pager starts a zero, not one.
-  $page = $variables['view']->query->pager->current_page;
-
-  // Is there a communication pod for this page?
-  if ($pod = fcl_fcuk_communication_pods_get_pod_for_path($path, $page)) {
-    // We has a pod! Render it and insert into the Views rows after the
-    // third position.
-    array_splice($variables['rows'], 3, 0, render($pod));
-
-    // Also add an entry into the classes array.
-    array_splice($variables['classes_array'], 3, 0, 'communication-pod-wrapper');
+    array_multisort($weights, SORT_ASC, $pods);
   }
 }
 
@@ -301,11 +220,11 @@ function fcl_fcuk_communication_pods_preprocess_views_view_unformatted(&$variabl
  */
 function fcl_fcuk_communication_pods_entity_info() {
   return [
-    COMMUNICATION_PODS_ENTITY_NAME => [
+    COMMUNICATION_POD_ENTITY_NAME => [
       'label' => t('Communication Pod'),
-      'controller class' => COMMUNICATION_PODS_ENTITY_CONTROLLER,
-      'base table' => COMMUNICATION_PODS_SCHEMA_NAME,
-      'uri callback' => COMMUNICATION_PODS_ENTITY_URI_CALLBACK,
+      'controller class' => COMMUNICATION_POD_ENTITY_CONTROLLER,
+      'base table' => COMMUNICATION_POD_SCHEMA_NAME,
+      'uri callback' => COMMUNICATION_POD_ENTITY_URI_CALLBACK,
       //'label callback' => COMMUNICATION_PODS_ENTITY_LABEL_CALLBACK,
       'fieldable' => TRUE,
       'entity keys' => [
@@ -315,10 +234,10 @@ function fcl_fcuk_communication_pods_entity_info() {
       ],
       'static cache' => TRUE,
       'bundles' => [
-        COMMUNICATION_PODS_BUNDLE_NAME => [
+        COMMUNICATION_POD_BUNDLE_NAME => [
           'label' => 'Communication Pod',
           'admin' => [
-            'path' => COMMUNICATION_PODS_ADMIN_URL,
+            'path' => COMMUNICATION_POD_ADMIN_URL,
             'access arguments' => [COMMUNICATION_POD_PERM_ADMIN_OVERVIEW],
           ],
         ],
@@ -341,9 +260,62 @@ function fcl_fcuk_communication_pods_entity_info() {
  */
 function fcl_fcuk_communication_pods_entity_load($entities, $type) {
   // When a Communication Pod entity is loaded, deserialise some of its data.
-  if ($type == COMMUNICATION_PODS_ENTITY_NAME) {
+  if ($type == COMMUNICATION_POD_ENTITY_NAME) {
     foreach ($entities as &$pod) {
       fcl_fcuk_communication_pods_serialize_unserialize_values($pod, 'unserialize');
     }
+  }
+}
+
+/**
+ * Implements hook_fcl_fcuk_communication_pods_preprocess_pod_alter().
+ *
+ * @param array $variables
+ */
+function fcl_fcuk_communication_pods_fcl_fcuk_communication_pods_preprocess_pod_alter(&$variables) {
+  // Attach this module's common CSS file to all pods.
+  $variables['pod_external_css'][] = url(drupal_get_path('module', 'fcl_fcuk_communication_pods') . '/css/fcl_fcuk_communication_pods.css');
+
+  // Set up a wrapper classes entry.
+  $variables['wrapper_classes'] = '';
+
+  // If the current user can edit the pod, add an edit link.
+  if (fcl_fcuk_communication_pods_access(COMMUNICATION_POD_ACTION_UPDATE, $variables[COMMUNICATION_POD_ENTITY_NAME])) {
+    $variables['classes_array'][] = 'can-edit';
+    $variables['edit_link'] = l(
+      t(fcl_fcuk_communication_pods_get_action(COMMUNICATION_POD_ACTION_UPDATE, $variables[COMMUNICATION_POD_ENTITY_NAME])),
+      COMMUNICATION_POD_ADMIN_URL . '/' . COMMUNICATION_POD_ACTION_UPDATE . '/' . $variables[COMMUNICATION_POD_MACHINE_NAME],
+      [
+        'query' => [
+          'destination' => $_GET['q'],
+        ],
+        'attributes' => [
+          'class' => [
+            'edit-link',
+          ],
+        ],
+      ]);
+
+    $variables['wrapper_classes'] .= ' can-edit';
+  }
+
+  // If the current user can delete the pod, add a delete link.
+  if (fcl_fcuk_communication_pods_access(COMMUNICATION_POD_ACTION_DELETE, $variables[COMMUNICATION_POD_ENTITY_NAME])) {
+    $variables['classes_array'][] = 'can-delete';
+    $variables['delete_link'] = l(
+      t(fcl_fcuk_communication_pods_get_action(COMMUNICATION_POD_ACTION_DELETE, $variables[COMMUNICATION_POD_ENTITY_NAME])),
+      COMMUNICATION_POD_ADMIN_URL . '/' . COMMUNICATION_POD_ACTION_DELETE . '/' . $variables[COMMUNICATION_POD_MACHINE_NAME],
+      [
+        'query' => [
+          'destination' => $_GET['q'],
+        ],
+        'attributes' => [
+          'class' => [
+            'delete-link',
+          ],
+        ],
+      ]);
+
+    $variables['wrapper_classes'] .= ' can-delete';
   }
 }

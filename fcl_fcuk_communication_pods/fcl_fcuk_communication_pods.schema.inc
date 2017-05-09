@@ -11,7 +11,7 @@
  * @return mixed
  */
 function _fcl_fcuk_communication_pods_schema_definitions() {
-  $schema[COMMUNICATION_PODS_SCHEMA_NAME] = [
+  $schema[COMMUNICATION_POD_SCHEMA_NAME] = [
     'description' => 'Stores custom Communication Pods entered by editors.',
     'fields' => [
       COMMUNICATION_POD_ID_FIELD => [

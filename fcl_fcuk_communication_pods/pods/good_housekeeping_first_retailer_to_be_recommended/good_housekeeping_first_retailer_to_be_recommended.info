@@ -4,3 +4,6 @@ pod_name = "The First Retailer To Be Recommended By Good Housekeeping"
 ; Only show on the holidays search results page.
 paths[] = holidays/search
 paths[] = holidays/search/*
+
+; Set the pod's language.
+language = und

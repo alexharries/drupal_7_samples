@@ -14,3 +14,6 @@ pod_external_js[] = //widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min
 
 ; Specify an external CSS file.
 ; pod_external_css[] = http://www.example.com/example.css
+
+; Set the pod's language.
+language = und

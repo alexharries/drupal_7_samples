@@ -275,9 +275,7 @@ function fcl_fcuk_communication_pods_get_pods_for_path($path = NULL, $randomise 
 
   // Have we already loaded/calculated which pods are available on this path?
   if (!array_key_exists($path, $pods_for_paths)) {
-    // No. Try and load from the cache.
-
-    // Build a cache ID.
+    // No. Try and load from the cache; build a cache ID.
     $cache_id = 'fcl_fcuk_communication_pods_for_path::' . str_replace('/', ':', $path);
 
     if (variable_get('cache') && ($pods_for_path_cache_result = cache_get($cache_id))
@@ -315,8 +313,10 @@ function fcl_fcuk_communication_pods_get_pods_for_path($path = NULL, $randomise 
       // to allow other functions/modules to modify this list.
       drupal_alter('fcl_fcuk_communication_pods_list_pods_for_path', $pods_for_paths[$path], $path, $randomise);
 
-      // Save the list.
-      cache_set($cache_id, $pods_for_paths[$path], 'cache', REQUEST_TIME + COMMUNICATION_POD_CACHE_LIFETIME);
+      // Save the list if caching is enabled.
+      if (variable_get('cache')) {
+        cache_set($cache_id, $pods_for_paths[$path], 'cache', REQUEST_TIME + COMMUNICATION_POD_CACHE_LIFETIME);
+      }
     }
   }
 
@@ -340,7 +340,6 @@ function fcl_fcuk_communication_pods_get_pods_for_path($path = NULL, $randomise 
  */
 function fcl_fcuk_communication_pods_get_pod_for_path($path = NULL, $pod_number = 0) {
   // Check if the pod exists.
-
   if ($pods_for_path = fcl_fcuk_communication_pods_get_pods_for_path($path)) {
     if (array_key_exists($pod_number, $pods_for_path)) {
       return $pods_for_path[$pod_number];
@@ -390,7 +389,7 @@ function fcl_fcuk_communication_pods_pod_enabled($pod_machine_name) {
  * This function also checks for the presence of pod.js or pod.css files
  * and includes them in the pod's HTML output.
  *
- * @param CommunicationPod entity $pod
+ * @param \stdClass $pod
  *   An object containing at a minimum a pod_machine_name value with the pod's
  *   machine name.
  *
@@ -444,22 +443,31 @@ function fcl_fcuk_communication_pods_pod_enabled($pod_machine_name) {
  *   <img src="<?php print $pod_path ?>/images/monkey.jpg" alt="<?php print
  *   t('A monkey') ?>" title="<?php print t('A picture of a monkey hanging onto
  *   a drainpipe.') ?>" />
+ *
+ * @param string $pod_machine_name
+ *   The pod's machine name.
  */
-function fcl_fcuk_communication_pods_initialise_file_pod(stdClass &$pod) {
+function fcl_fcuk_communication_pods_initialise_pod(stdClass &$pod, $pod_machine_name) {
   $initialised_pods = &drupal_static(__FUNCTION__, []);
 
-  // Get the pod's machine name.
-  $pod_machine_name = $pod->{COMMUNICATION_POD_MACHINE_NAME};
+  // Has this pod already been initialised?
+  if (!array_key_exists($pod_machine_name, $initialised_pods)) {
+    // Add the pod's machine name.
+    $pod->{COMMUNICATION_POD_MACHINE_NAME} = $pod_machine_name;
 
-  // Get the absolute path to the pod.
-  $pod->pod_absolute_path = DRUPAL_ROOT . '/' . drupal_get_path('module', 'fcl_fcuk_communication_pods') . '/pods/' . $pod_machine_name;
+    // Get the absolute path to the pod, but only if it's on disk.
+    $pod->pod_absolute_path = FALSE;
+    $pod_absolute_path_not_checked = DRUPAL_ROOT . '/' . drupal_get_path('module', 'fcl_fcuk_communication_pods') . '/pods/' . $pod_machine_name;
 
-  // Check that it's a valid directory.
-  if (is_dir($pod->pod_absolute_path)) {
-    // Has this pod already been initialised?
-    if (!array_key_exists($pod_machine_name, $initialised_pods)) {
-      // Save some info.
-      _fcl_fcuk_communication_pods_decorate_empty_pod($pod);
+    // If the pod exists on disk, add some extra information about it.
+    if (is_dir($pod_absolute_path_not_checked)) {
+      // Put the pod's absolute path in.
+      $pod->pod_absolute_path = $pod_absolute_path_not_checked;
+
+      // If the pod is in the database, we don't want to over-write any
+      // of its data with information from disk so we skip loading in its
+      // CSS and JS, etc.
+      $pod_is_in_db = fcl_fcuk_communication_pods_pod_is_in_db($pod);
 
       // Determine the path of the pod relative to Drupal's root.
       $pod->pod_relative_path = drupal_get_path('module', 'fcl_fcuk_communication_pods') . '/pods/' . $pod_machine_name;
@@ -474,34 +482,61 @@ function fcl_fcuk_communication_pods_initialise_file_pod(stdClass &$pod) {
 
       // If the CSS file exists, get its contents.
       $pod->pod_css_absolute_path = $pod->pod_absolute_path . '/' . $pod->{COMMUNICATION_POD_MACHINE_NAME} . COMMUNICATION_POD_CSS_EXTENSION;
-      if (file_exists($pod->pod_css_absolute_path)) {
+      if (!$pod_is_in_db && file_exists($pod->pod_css_absolute_path)) {
         $pod->pod_css = file_get_contents($pod->pod_css_absolute_path);
       }
 
       // If the JS file exists, get its contents.
       $pod->pod_js_absolute_path = $pod->pod_absolute_path . '/' . $pod->{COMMUNICATION_POD_MACHINE_NAME} . COMMUNICATION_POD_JS_EXTENSION;
-      if (file_exists($pod->pod_js_absolute_path)) {
+      if (!$pod_is_in_db && file_exists($pod->pod_js_absolute_path)) {
         $pod->pod_js = file_get_contents($pod->pod_js_absolute_path);
       }
 
       // Load the pod's .tpl.html file, allow the html to be altered, and then
       // run variaboo replacements on it in the preprocess function which
       // called this function.
-      // @todo: allow use of {pod_url} and other variables in CSS and JS files.
       $pod->pod_template_absolute_path = $pod->pod_absolute_path . '/' . $pod->{COMMUNICATION_POD_MACHINE_NAME} . COMMUNICATION_POD_TEMPLATE_EXTENSION;
-      if (file_exists($pod->pod_template_absolute_path)) {
+      if (!$pod_is_in_db && file_exists($pod->pod_template_absolute_path)) {
         $pod->pod_html = file_get_contents($pod->pod_template_absolute_path);
       }
-
-      // Implement a hook_fcl_fcuk_communication_pods_pod_init_alter.
-      drupal_alter('fcl_fcuk_communication_pods_initialise_file_pod', $pod);
-
-      $initialised_pods[$pod_machine_name] = $pod;
     }
-  }
-  else {
-    // Pod not found.
-    $pod->status = COMMUNICATION_POD_NOT_FOUND;
+
+    // Add a theme function.
+    $pod->theme = COMMUNICATION_POD_THEME_FUNCTION;
+
+    // Always set the 'disabled' key on the pod, even if it's not disabled.
+    if (empty($pod->disabled)) {
+      $pod->disabled = FALSE;
+    }
+
+    // Convert numeric 0 or 1 to FALSE or TRUE as provided by the info file.
+    if ($pod->disabled === 0) {
+      $pod->disabled = FALSE;
+    }
+
+    if ($pod->disabled === 1) {
+      $pod->disabled = TRUE;
+    }
+
+    // Disable pods whose machine name ends in '__disabled'.
+    $pod_machine_name_substr = substr($pod_machine_name, (0 - strlen(COMMUNICATION_POD_POD_DISABLED)));
+    if ($pod_machine_name_substr == COMMUNICATION_POD_POD_DISABLED) {
+      $pod->disabled = TRUE;
+    }
+
+    // If the pod doesn't have a paths array, create one now with a single *
+    // entry.
+    if (empty($pod->paths)) {
+      $pod->paths = ['*'];
+    }
+
+    // Make sure all the values we're expecting on the pod are set.
+    _fcl_fcuk_communication_pods_decorate_empty_pod($pod);
+
+    // Implement a hook_fcl_fcuk_communication_pods_initialise_pod_alter.
+    drupal_alter('fcl_fcuk_communication_pods_initialise_pod', $pod);
+
+    $initialised_pods[$pod_machine_name] = $pod;
   }
 }
 
@@ -600,13 +635,27 @@ function fcl_fcuk_communication_pods_preprocess_pod(&$variables) {
         continue;
       }
 
-      $pod['pod_html'] = str_replace('{' . $pod_variable_name . '}', $pod_variable_value, $pod['pod_html']);
-      $pod['pod_css'] = str_replace('{' . $pod_variable_name . '}', $pod_variable_value, $pod['pod_html']);
-      $pod['pod_js'] = str_replace('{' . $pod_variable_name . '}', $pod_variable_value, $pod['pod_html']);
+      // We can't replace a string with an array/object, so if
+      // $pod_variable_value is array|object, implode it into a comma-separated
+      // string.
+      if (is_object($pod_variable_value) || is_array($pod_variable_value)) {
+        $pod_variable_value = implode(', ', $pod_variable_value);
+      }
 
-      // Merge the pod's variables into the variables array.
-      $variables += $pod;
+      $pod->pod_html = str_replace('{' . $pod_variable_name . '}', $pod_variable_value, $pod->pod_html);
+      $pod->pod_css = str_replace('{' . $pod_variable_name . '}', $pod_variable_value, $pod->pod_css);
+      $pod->pod_js = str_replace('{' . $pod_variable_name . '}', $pod_variable_value, $pod->pod_js);
     }
+
+    // Now we've processed all the variaboos, loop through each and copy them
+    // into the $variables array.
+    foreach ($pod as $pod_variable_name => $pod_variable_value) {
+      // Merge the pod's variables into the variables array.
+      $variables[$pod_variable_name] = $pod_variable_value;
+    }
+
+    // Add the pod itself in as a variable in $variables.
+    $variables[COMMUNICATION_POD_ENTITY_NAME] = $pod;
   }
 
   // Implement a hook_fcl_fcuk_communication_pods_preprocess_pod_alter.
@@ -692,7 +741,7 @@ function fcl_fcuk_communication_pods_test_page() {
   // If the URL contains 'nocache', bypass the cache, then redirect back to
   // this page.
   if (isset($_GET['nocache'])) {
-    fcl_fcuk_communication_pods_load_multiple([], TRUE);
+    fcl_fcuk_communication_pods_load_multiple([], [], TRUE);
     drupal_set_message(t('Communication Pods cache reset'), 'status');
     drupal_goto(current_path());
   }
@@ -721,21 +770,25 @@ function fcl_fcuk_communication_pods_test_page() {
     ]),
   ];
 
-  $all_pods = fcl_fcuk_communication_pods_load_multiple();
+  $pods = fcl_fcuk_communication_pods_load_multiple();
 
-  foreach ($all_pods as $pod_machine_name => $pod_info) {
+  foreach (element_children($pods) as $pod_machine_name) {
+    // Create a horizontal line to separate the pod.
+    $render[$pod_machine_name . '_separator'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'hr',
+    ];
+
     // Create a heading for the pod.
     $render[$pod_machine_name . '_title'] = [
       '#type' => 'html_tag',
       '#tag' => 'h3',
-      '#value' => t('Communication pod %pod_name', ['%pod_name' => $pod_info->pod_name]),
+      '#value' => t('Communication pod %pod_name', ['%pod_name' => $pods[$pod_machine_name]->pod_name]),
     ];
-
-    // Now output the pod itself.
-    $render[$pod_machine_name] = $pod_info; /*[
-      '#theme' => COMMUNICATION_POD_THEME_PREFIX . $pod_machine_name,
-      '#pod_machine_name' => $pod_machine_name,
-    ];*/
+    // Now output the pod itself. Note that we have to use clone() here to
+    // avoid PHP's default behaviour to store a reference to a pod (which would
+    // mean later pods would overwrite earlier pods).
+    $render[$pod_machine_name] = fcl_fcuk_communication_pods_get_render_array($pods[$pod_machine_name]);
 
     // Lastly, put the pod's .info file contents in a textarea.
     $render[$pod_machine_name . '_textarea_title'] = [
@@ -749,7 +802,7 @@ function fcl_fcuk_communication_pods_test_page() {
 
     $render[$pod_machine_name . '_info'] = [
       '#type' => 'textarea',
-      '#value' => print_r($pod_info, TRUE),
+      '#value' => print_r($pods[$pod_machine_name], TRUE),
     ];
   }
 
@@ -767,9 +820,9 @@ function fcl_fcuk_communication_pods_admin_page() {
   $add_pod_link = '';
 
   if (fcl_fcuk_communication_pods_access(COMMUNICATION_POD_ACTION_CREATE)) {
-    $add_pod_link = ' ' . t('<a href="@create_url">Create a new Communication Pod</a>', [
-        '@create_url' => url(COMMUNICATION_PODS_ADMIN_URL . '/' . COMMUNICATION_POD_ACTION_CREATE),
-      ]);
+    $add_pod_link = '<p>' . t('<a href="@create_url">+ Create Communication Pod</a>', [
+        '@create_url' => url(COMMUNICATION_POD_ADMIN_URL . '/' . COMMUNICATION_POD_ACTION_CREATE),
+      ]) . '</p>';
   }
 
   // Initialise the render array.
@@ -788,13 +841,15 @@ function fcl_fcuk_communication_pods_admin_page() {
     '#value' => t('This page shows a list of all available Communication Pods.') . $add_pod_link,
   ];
 
+  $render['help_text_pods_overview'] = [
+    '#markup' => fcl_fcuk_communication_pods_help('help_text_pods_overview'),
+  ];
+
   // Get a list of all pods.
   $all_pods = fcl_fcuk_communication_pods_load_multiple();
 
   // If we have pods, sort them by machine name and build a table render array.
   if (!empty($all_pods)) {
-    ksort($all_pods);
-
     $render['pods_table'] = [
       '#theme' => 'table',
       '#caption' => t(''),
@@ -802,11 +857,17 @@ function fcl_fcuk_communication_pods_admin_page() {
         // The pod's name column.
         t('Name'),
 
+        // The paths which the pod will display on.
+        t('Paths (URLs)'),
+
+        // The pod's weight column.
+        t('Weight'),
+
         // The pod's status column.
         t('Status'),
 
         // The pod's action links, if the user has access to make changes.
-        '',
+        t('Actions'),
       ],
       '#rows' => [],
     ];
@@ -820,7 +881,7 @@ function fcl_fcuk_communication_pods_admin_page() {
       if (fcl_fcuk_communication_pods_access(COMMUNICATION_POD_ACTION_UPDATE, $pod)) {
         $pod_action_links[] = l(
           t(fcl_fcuk_communication_pods_get_action(COMMUNICATION_POD_ACTION_UPDATE, $pod)),
-          COMMUNICATION_PODS_ADMIN_URL . '/' . COMMUNICATION_POD_ACTION_UPDATE . '/' . $pod_machine_name);
+          COMMUNICATION_POD_ADMIN_URL . '/' . COMMUNICATION_POD_ACTION_UPDATE . '/' . $pod_machine_name);
       }
 
       // If the pod is in the database, it can be deleted/reverted if the user
@@ -829,7 +890,7 @@ function fcl_fcuk_communication_pods_admin_page() {
         if (fcl_fcuk_communication_pods_access(COMMUNICATION_POD_ACTION_DELETE, $pod)) {
           $pod_action_links[] = l(
             t(fcl_fcuk_communication_pods_get_action(COMMUNICATION_POD_ACTION_DELETE, $pod)),
-            COMMUNICATION_PODS_ADMIN_URL . '/' . COMMUNICATION_POD_ACTION_DELETE . '/' . $pod_machine_name);
+            COMMUNICATION_POD_ADMIN_URL . '/' . COMMUNICATION_POD_ACTION_DELETE . '/' . $pod_machine_name);
         }
       }
 
@@ -841,6 +902,12 @@ function fcl_fcuk_communication_pods_admin_page() {
           // The pod's name.
           '<h5 class="pod-friendly-name">' . check_plain($pod->{COMMUNICATION_POD_FRIENDLY_NAME}) . '</h5>'
           . '<p class="pod-machine-name">' . check_plain($pod->{COMMUNICATION_POD_MACHINE_NAME}) . '</p>',
+
+          // The pod's paths.
+          '<ul class="pod-paths"><li>' . implode('</li> <li>', $pod->paths) . '</li></ul>',
+
+          // The pod's weight.
+          '<p class="pod-weight">' . $pod->weight . '</p>',
 
           // The pod's status.
           '<div class="pod-status">'
@@ -1077,15 +1144,15 @@ function fcl_fcuk_communication_pods_view_pod($pod, $view_mode = 'full') {
   $pod->content = array();
 
   // Build fields content.
-  field_attach_prepare_view(COMMUNICATION_PODS_ENTITY_NAME, [
+  field_attach_prepare_view(COMMUNICATION_POD_ENTITY_NAME, [
     $pod->{COMMUNICATION_POD_MACHINE_NAME} => $pod,
   ], $view_mode);
 
-  entity_prepare_view(COMMUNICATION_PODS_ENTITY_NAME, [
+  entity_prepare_view(COMMUNICATION_POD_ENTITY_NAME, [
     $pod->{COMMUNICATION_POD_MACHINE_NAME} => $pod,
   ]);
 
-  $pod->content += field_attach_view(COMMUNICATION_PODS_ENTITY_NAME, $pod, $view_mode);
+  $pod->content += field_attach_view(COMMUNICATION_POD_ENTITY_NAME, $pod, $view_mode);
 
   return $pod->content;
 }
@@ -1101,7 +1168,7 @@ function fcl_fcuk_communication_pods_view_pod($pod, $view_mode = 'full') {
  */
 function fcl_fcuk_communication_pods_extract_edit_form_values(array $form_state_values) {
   // Get the pod entity from the server-side field we saved it into.
-  $pod = $form_state_values[COMMUNICATION_PODS_ENTITY_NAME];
+  $pod = $form_state_values[COMMUNICATION_POD_ENTITY_NAME];
 
   $pod->uid = $form_state_values['uid'];
   $pod->{COMMUNICATION_POD_MACHINE_NAME} = $form_state_values[COMMUNICATION_POD_MACHINE_NAME];
@@ -1112,6 +1179,7 @@ function fcl_fcuk_communication_pods_extract_edit_form_values(array $form_state_
   $pod->pod_js = $form_state_values['pod_js'];
   $pod->pod_external_js = fcl_uk_utilities_text_field_to_array($form_state_values['pod_external_js']);
   $pod->paths = fcl_uk_utilities_text_field_to_array($form_state_values['paths']);
+  $pod->weight = $form_state_values['weight'];
   $pod->disabled = $form_state_values['disabled'];
 
   return $pod;
@@ -1127,7 +1195,7 @@ function fcl_fcuk_communication_pods_extract_edit_form_values(array $form_state_
  *   The machine name of the entity, if found, or FALSE if not.
  */
 function fcl_fcuk_communication_pods_entity_id_to_machine_name($entity_id) {
-  return entity_load(COMMUNICATION_PODS_ENTITY_NAME, [$entity_id])->{COMMUNICATION_POD_MACHINE_NAME};
+  return entity_load(COMMUNICATION_POD_ENTITY_NAME, [$entity_id])->{COMMUNICATION_POD_MACHINE_NAME};
 }
 
 /**
@@ -1217,8 +1285,8 @@ function fcl_fcuk_communication_pods_load_from_db($pod_machine_name, array $fiel
   // If we haven't already checked this pod, attempt to load it from the
   // database.
   if (!array_key_exists($cache_id, $loaded_pods)) {
-    $loaded_pods[$cache_id] = db_select(COMMUNICATION_PODS_SCHEMA_NAME, COMMUNICATION_PODS_SCHEMA_NAME)
-      ->fields(COMMUNICATION_PODS_SCHEMA_NAME, $fields_to_load)
+    $loaded_pods[$cache_id] = db_select(COMMUNICATION_POD_SCHEMA_NAME, COMMUNICATION_POD_SCHEMA_NAME)
+      ->fields(COMMUNICATION_POD_SCHEMA_NAME, $fields_to_load)
       ->condition(COMMUNICATION_POD_MACHINE_NAME, $pod_machine_name)
       ->execute()
       ->fetchObject();
@@ -1258,6 +1326,7 @@ function _fcl_fcuk_communication_pods_decorate_empty_pod(stdClass &$pod) {
     'pod_external_js' => [],
     'paths' => ['*'],
     'disabled' => FALSE,
+    'weight' => 0,
     'language' => LANGUAGE_NONE,
     'extra_information' => [],
   ];
@@ -1294,4 +1363,42 @@ function fcl_fcuk_communication_pods_serialize_unserialize_values($pod, $action)
       }
     }
   }
+}
+
+/**
+ * Gets a render array for a Communication Pod.
+ *
+ * @param CommunicationPod entity $pod
+ *
+ * @return array|bool
+ */
+function fcl_fcuk_communication_pods_get_render_array($pod) {
+  // Make sure this is a valid communication pod.
+  if (fcl_fcuk_communication_pods_valid_pod($pod)) {
+    return [
+      '#' . COMMUNICATION_POD_MACHINE_NAME => $pod->{COMMUNICATION_POD_MACHINE_NAME},
+      '#theme' => COMMUNICATION_POD_THEME_FUNCTION,
+      '#attached' => [
+        // Caveat developer: you can't safely use #attached to attach JS or CSS
+        // to a Communication Pod because, if it's loaded over Ajax, I don't
+        // think it will be added, so you need to add the CSS file to the
+        // chunk of HTML delivered as part of the pod.
+//        'css' => [],
+      ],
+    ];
+  }
+
+  return FALSE;
+}
+
+/**
+ * Check if a Communication Pod appears to be valid.
+ *
+ * @param CommunicationPod entity $pod
+ *
+ * @return bool
+ *   TRUE if the pod looks valid; FALSE if not.
+ */
+function fcl_fcuk_communication_pods_valid_pod($pod) {
+  return !empty($pod) && is_object($pod) && !empty($pod->{COMMUNICATION_POD_MACHINE_NAME});
 }

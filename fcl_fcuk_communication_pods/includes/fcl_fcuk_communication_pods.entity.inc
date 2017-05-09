@@ -26,6 +26,15 @@
  *   The loaded entities.
  */
 function fcl_fcuk_communication_pods_load_multiple($pods_to_load = FALSE, array $conditions = [], $reset = FALSE) {
+  // If we're on an edit or delete page, we change $reset to be TRUE.
+  $edit_url = COMMUNICATION_POD_ADMIN_URL . '/' . COMMUNICATION_POD_ACTION_UPDATE;
+  $delete_url = COMMUNICATION_POD_ADMIN_URL . '/' . COMMUNICATION_POD_ACTION_DELETE;
+
+  if ((strpos(request_path(), $edit_url) === 0) ||
+    (strpos(request_path(), $delete_url) === 0)) {
+    $reset = TRUE;
+  }
+
   // We need to convert the machine names to entity IDs, if we have any
   // machine names.
   $pods_to_load_by_id = FALSE;
@@ -33,7 +42,7 @@ function fcl_fcuk_communication_pods_load_multiple($pods_to_load = FALSE, array 
     $pods_to_load_by_id = array_values(fcl_fcuk_communication_pods_machine_name_to_entity_id($pods_to_load));
   }
 
-  $loaded_communication_pods_by_id = entity_load(COMMUNICATION_PODS_ENTITY_NAME, $pods_to_load_by_id, $conditions, $reset);
+  $loaded_communication_pods_by_id = entity_load(COMMUNICATION_POD_ENTITY_NAME, $pods_to_load_by_id, $conditions, $reset);
 
   // Convert the loaded pods array keys to be the pod machine names.
   $loaded_communication_pods = [];
@@ -58,13 +67,16 @@ function fcl_fcuk_communication_pods_load_multiple($pods_to_load = FALSE, array 
     $loaded_communication_pods += _fcl_fcuk_communication_pods_load_from_disk($missing_pods_to_load_from_disk, $reset);
   }
 
+  // Implement a hook_fcl_fcuk_communication_pods_load_multiple_alter.
+  drupal_alter('fcl_fcuk_communication_pods_load_multiple', $loaded_communication_pods, $pods_to_load, $conditions, $reset);
+
   return $loaded_communication_pods;
 }
 
 /**
  * Load a single communication pod by its machine name.
  *
- * @param string|null $pod_machine_name
+ * @param string $pod_machine_name
  *   The machine name of the Communication Pod.
  *
  * @param bool $reset
@@ -74,10 +86,9 @@ function fcl_fcuk_communication_pods_load_multiple($pods_to_load = FALSE, array 
  *   If found, returns the Communication Pod entity; if not found,
  *   returns FALSE.
  */
-function fcl_fcuk_communication_pods_load($pod_machine_name = NULL, $reset = FALSE) {
-  $pod_machine_names = isset($pod_machine_name) ? [$pod_machine_name] : [];
-
-  if ($pods = fcl_fcuk_communication_pods_load_multiple($pod_machine_names, [], $reset)) {
+function fcl_fcuk_communication_pods_load($pod_machine_name, $reset = FALSE) {
+  if (!empty($pod_machine_name) &&
+    ($pods = fcl_fcuk_communication_pods_load_multiple([$pod_machine_name], [], $reset))) {
     $pod = reset($pods);
 
     return $pod;
@@ -95,7 +106,7 @@ function fcl_fcuk_communication_pods_load($pod_machine_name = NULL, $reset = FAL
  *   The saved Communication Pod entity.
  */
 function fcl_fcuk_communication_pods_save($pod) {
-  return entity_get_controller(COMMUNICATION_PODS_ENTITY_NAME)->save($pod);
+  return entity_get_controller(COMMUNICATION_POD_ENTITY_NAME)->save($pod);
 }
 
 /**
@@ -107,5 +118,5 @@ function fcl_fcuk_communication_pods_save($pod) {
  *   False if unsuccessful. True if successful?
  */
 function fcl_fcuk_communication_pods_delete($pod) {
-  return entity_get_controller(COMMUNICATION_PODS_ENTITY_NAME)->delete([$pod->{COMMUNICATION_POD_MACHINE_NAME}]);
+  return entity_get_controller(COMMUNICATION_POD_ENTITY_NAME)->delete([$pod->{COMMUNICATION_POD_MACHINE_NAME}]);
 }

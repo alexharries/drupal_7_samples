@@ -47,6 +47,11 @@ function fcl_fcuk_communication_pods_edit_pod_form($form, &$form_state, stdClass
   // Set a boolean if we're creating a new pod.
   $creating_new_pod = empty($pod->{COMMUNICATION_POD_MACHINE_NAME});
 
+  $form['help_text_about_pods'] = [
+    '#type' => 'markup',
+    '#markup' => fcl_fcuk_communication_pods_help('help_text_creating_pods'),
+  ];
+
   // Are we editing an existing pod or creating a new one?
   $form['create_or_edit'] = [
     '#type' => 'value',
@@ -73,7 +78,7 @@ function fcl_fcuk_communication_pods_edit_pod_form($form, &$form_state, stdClass
 
   // Store the pod in a server-side field. If we're creating a new pod, this
   // will be null.
-  $form[COMMUNICATION_PODS_ENTITY_NAME] = [
+  $form[COMMUNICATION_POD_ENTITY_NAME] = [
     '#type' => 'value',
     '#value' => $pod,
   ];
@@ -141,6 +146,18 @@ function fcl_fcuk_communication_pods_edit_pod_form($form, &$form_state, stdClass
     '#default_value' => implode("\r\n", $pod->paths),
   ];
 
+  // Set the pod's weight relative to other pods.
+  $form['weight'] = [
+    '#type' => 'select',
+    '#title' => t('Weight'),
+    '#description' => t('Adjust the pod\'s "weight" relative to other pods; pods are sorted from lowest to highest weight, so a pod with a lower weight will appear before a pod with a higher weight on the same page.'),
+    '#default_value' => $pod->weight,
+    '#options' => drupal_map_assoc(range(-10, 10)),
+  ];
+
+  // Indicate that weight "0" is the default.
+  $form['weight']['#options'][0] = t('0 (default)');
+
   // Is the pod disabled?
   $form['disabled'] = [
     '#type' => 'checkbox',
@@ -176,7 +193,7 @@ function fcl_fcuk_communication_pods_edit_pod_form($form, &$form_state, stdClass
   );
 
   // Add any fields from Field API.
-  field_attach_form(COMMUNICATION_PODS_ENTITY_NAME, $pod, $form, $form_state);
+  field_attach_form(COMMUNICATION_POD_ENTITY_NAME, $pod, $form, $form_state);
 
   return $form;
 }
@@ -194,13 +211,13 @@ function fcl_fcuk_communication_pods_edit_pod_form($form, &$form_state, stdClass
 function fcl_fcuk_communication_pods_edit_pod_form_validate($form, &$form_state) {
   // Validate Field API values.
   $pod = fcl_fcuk_communication_pods_extract_edit_form_values($form_state['values']);
-  field_attach_form_validate(COMMUNICATION_PODS_ENTITY_NAME, $pod, $form, $form_state);
+  field_attach_form_validate(COMMUNICATION_POD_ENTITY_NAME, $pod, $form, $form_state);
 
   // If "create_or_edit" is create, check that the machine name doesn't already
   // exist.
   if ($form_state['values']['create_or_edit'] == fcl_fcuk_communication_pods_get_action(COMMUNICATION_POD_ACTION_CREATE)) {
     // Try loading a pod with this machine name.
-    if (fcl_fcuk_communication_pods_pod_is_in_db($form_state['values'][COMMUNICATION_POD_MACHINE_NAME])) {
+    if (fcl_fcuk_communication_pods_pod_is_in_db($form_state['values'][COMMUNICATION_POD_ENTITY_NAME])) {
       form_set_error(COMMUNICATION_POD_MACHINE_NAME, t('Sorry, this pod machine is already in use. Please choose another.'));
     }
   }
@@ -262,13 +279,13 @@ function fcl_fcuk_communication_pods_edit_pod_form_submit($form, &$form_state) {
   $form_state['values']['pod_html'] = check_markup(
     $form_state['values']['pod_html'],
     'full_html',
-    $form_state['values'][COMMUNICATION_PODS_ENTITY_NAME]->language,
+    $form_state['values'][COMMUNICATION_POD_ENTITY_NAME]->language,
     FALSE);
 
   // Save the pod information in the database using entity_save().
   // Validate Field API values.
   $pod = fcl_fcuk_communication_pods_extract_edit_form_values($form_state['values']);
-  field_attach_submit(COMMUNICATION_PODS_ENTITY_NAME, $pod, $form, $form_state);
+  field_attach_submit(COMMUNICATION_POD_ENTITY_NAME, $pod, $form, $form_state);
 
   // If the pod saved correctly, show a happy message; otherwise, show a sad
   // one.
@@ -283,7 +300,7 @@ function fcl_fcuk_communication_pods_edit_pod_form_submit($form, &$form_state) {
     ]), 'error');
   }
 
-  $form_state['redirect'] = COMMUNICATION_PODS_ADMIN_URL;
+  $form_state['redirect'] = COMMUNICATION_POD_ADMIN_URL;
 }
 
 /**
@@ -341,7 +358,7 @@ function fcl_fcuk_communication_pods_delete_pod_form($form, &$form_state, stdCla
     ];
 
     // Store the pod in a server-side field.
-    $form[COMMUNICATION_PODS_ENTITY_NAME] = [
+    $form[COMMUNICATION_POD_ENTITY_NAME] = [
       '#type' => 'value',
       '#value' => $pod,
     ];
@@ -391,7 +408,7 @@ function fcl_fcuk_communication_pods_delete_pod_form_submit($form, &$form_state)
     ]), 'error');
   }
 
-  $form_state['redirect'] = COMMUNICATION_PODS_ADMIN_URL;
+  $form_state['redirect'] = COMMUNICATION_POD_ADMIN_URL;
 }
 
 /**

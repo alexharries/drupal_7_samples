@@ -29,18 +29,18 @@ class CommunicationPodController extends DrupalDefaultEntityController {
     fcl_fcuk_communication_pods_serialize_unserialize_values($pod, 'serialize');
 
     // Attempt to save. Try and handle failures in a semi-gracefully way.
-    if ($write_result = drupal_write_record(COMMUNICATION_PODS_SCHEMA_NAME, $pod, $primary_keys)) {
+    if ($write_result = drupal_write_record(COMMUNICATION_POD_SCHEMA_NAME, $pod, $primary_keys)) {
       if ($pod_is_new) {
-        field_attach_insert(COMMUNICATION_PODS_ENTITY_NAME, $pod);
+        field_attach_insert(COMMUNICATION_POD_ENTITY_NAME, $pod);
         $hook_to_invoke = 'entity_insert';
       }
       else {
-        field_attach_update(COMMUNICATION_PODS_ENTITY_NAME, $pod);
+        field_attach_update(COMMUNICATION_POD_ENTITY_NAME, $pod);
         $hook_to_invoke = 'entity_update';
       }
 
       // Invoke hook_entity_<something> hooks.
-      module_invoke_all($hook_to_invoke, $pod, COMMUNICATION_PODS_ENTITY_NAME);
+      module_invoke_all($hook_to_invoke, $pod, COMMUNICATION_POD_ENTITY_NAME);
 
       return $pod;
     }

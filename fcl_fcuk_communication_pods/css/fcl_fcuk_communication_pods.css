@@ -3,8 +3,66 @@
  * Common styles for communication pods.
  */
 
-.communication-pod {
+/* The wrapper around the whole communication pod block. */
+.communication-pod-wrapper {
   clear: both;
   margin-top: 1.5rem;
   margin-bottom: 1.5rem;
+}
+
+.communication-pod-wrapper {
+  position: relative;
+}
+
+/* If the current user can edit the pod, we add a class and show an edit
+   link. */
+.communication-pod-wrapper.can-edit {
+  border: #ff3cc1 5px dotted;
+}
+
+.communication-pod-wrapper.can-edit:before {
+  background-color: #ff3cc1;
+  color: #fff;
+  content: "Communication Pod";
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  display: block;
+  font-size: 8px;
+  text-transform: uppercase;
+  padding: 1px 3px;
+  z-index: 100;
+}
+
+/* Style the edit and delete links but hide until you hover over the
+   communication pod. */
+.communication-pod-wrapper .communication-pod .actions-wrapper {
+  background-color: #fff;
+  display: none;
+  z-index: 100;
+  position: absolute;
+  right: 0;
+  top: 0;
+  font-size: 10px;
+  padding: 1px 2px;
+}
+
+.communication-pod-wrapper.can-edit:hover .communication-pod .actions-wrapper {
+  display: block;
+}
+
+.communication-pod-wrapper .communication-pod a {
+  text-decoration: none;
+}
+
+.communication-pod-wrapper .communication-pod a:hover {
+  text-decoration: underline;
+}
+
+.communication-pod-wrapper .communication-pod a.edit-link {
+  color: #888;
+}
+
+.communication-pod-wrapper .communication-pod a.delete-link {
+  color: #f00;
 }

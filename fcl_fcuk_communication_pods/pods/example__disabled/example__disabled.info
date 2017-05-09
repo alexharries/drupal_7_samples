@@ -26,3 +26,6 @@ pod_name = Example Communication Pod
 ; preprocess_file = example__disabled.inc
 ; preprocess_functions[] = communication_pod_example__inc_preprocess_1
 ; preprocess_functions[] = communication_pod_example__inc_preprocess_2
+
+; Set the pod's language.
+language = und
